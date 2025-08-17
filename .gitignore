@@ -1,13 +1,58 @@
-HELP.md
+# EarDream Project - Git Ignore Rules
+
+# Gradle
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
-# Spring Boot application properties
-src/main/resources/application.properties
 
-### STS ###
+# Spring Boot
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Application Properties (보안상 제외)
+src/main/resources/application-*.yml
+src/main/resources/application-*.properties
+!src/main/resources/application.yml
+!src/main/resources/application-example.yml
+
+# Oracle Wallet (보안 정보 제외)
+src/main/resources/wallet/
+
+# 환경 변수 파일
+.env
+.env.local
+.env.dev
+.env.prod
+*.env
+
+# 로그 파일
+logs/
+*.log
+*.log.*
+
+# 업로드된 파일들
+uploads/
+temp/
+*.tmp
+
+# IDE 설정 파일
+### IntelliJ IDEA ###
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+!**/src/main/**/out/
+!**/src/test/**/out/
+
+### Eclipse ###
 .apt_generated
 .classpath
 .factorypath
@@ -19,14 +64,9 @@ bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+### VS Code ###
+.vscode/
+*.code-workspace
 
 ### NetBeans ###
 /nbproject/private/
@@ -35,5 +75,59 @@ out/
 /nbdist/
 /.nb-gradle/
 
-### VS Code ###
-.vscode/
+# 시스템 파일
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# 테스트 결과
+/test-results/
+/test-output/
+
+# 보안 및 인증서
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+*.keystore
+*.truststore
+
+# AWS 키 파일 (프로젝트별)
+senior.pem
+aws-*.pem
+ec2-*.pem
+
+# 문서 파일 (생성된)
+/docs/api/
+/docs/generated/
+
+# 캐시
+.cache/
+node_modules/
+npm-debug.log*
+
+# 배포 관련
+docker-compose.override.yml
+deployment-*.yml
+
+# 백업 파일
+*.bak
+*.backup
+*.old
+
+# 개발 도구
+.checkstyle
+dependency-check-report.html
+/target/
+
+# Claude Code 설정 (개인별 설정이므로 제외)
+.claude/
+CLAUDE.md
+DEPLOYMENT.md
+plan.md
+QUICK_START.md

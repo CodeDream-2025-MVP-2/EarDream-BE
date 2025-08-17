@@ -1,0 +1,148 @@
+# EarDream Application Configuration
+# MVP 개발용 Spring Boot 설정 (팀원 제공 Oracle 설정 기반)
+
+server:
+  port: 8080
+
+spring:
+  application:
+    name: eardream
+  
+  # 프로필별 설정
+  profiles:
+    active: dev
+    
+  # Oracle Database 연결 설정 (팀원 제공 Wallet 사용)
+  datasource:
+    url: jdbc:oracle:thin:@senior_medium?TNS_ADMIN=${ORACLE_TNS_ADMIN:src/main/resources/wallet}
+    username: ${DB_USERNAME:ADMIN}
+    password: ${DB_PASSWORD}
+    driver-class-name: oracle.jdbc.OracleDriver
+    hikari:
+      connection-timeout: 20000
+      maximum-pool-size: 10
+      minimum-idle: 5
+
+# MyBatis 설정
+mybatis:
+  mapper-locations: classpath:mapper/*.xml
+  type-aliases-package: com.eardream.domain.**.entity
+  type-handlers-package: com.eardream.global.config
+  configuration:
+    map-underscore-to-camel-case: true
+    use-generated-keys: true
+    default-executor-type: reuse
+    lazy-loading-enabled: false
+    # 자동 타입 핸들러 등록
+    auto-mapping-behavior: full
+    # 자동 매핑 시 알 수 없는 컬럼 무시
+    auto-mapping-unknown-column-behavior: none
+
+# Logging 설정 (MVP용 간단 설정)
+logging:
+  level:
+    com.eardream: DEBUG
+    org.springframework.web: INFO
+    org.mybatis: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+# Clerk Authentication 설정
+clerk:
+  secret-key: ${CLERK_SECRET_KEY}
+  publishable-key: ${CLERK_PUBLISHABLE_KEY}
+  api-url: ${CLERK_API_URL:https://api.clerk.com}
+
+# AWS S3 설정 (파일 업로드용)
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:eardream-files}
+    region: ${AWS_REGION:ap-northeast-2}
+
+# Actuator 설정 (모니터링 및 헬스체크)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always
+  health:
+    oracle:
+      enabled: true
+    diskspace:
+      enabled: true
+  info:
+    env:
+      enabled: true
+    java:
+      enabled: true
+    os:
+      enabled: true
+
+---
+# 개발 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: dev
+  
+  # H2 콘솔 활성화 (로컬 테스트용)
+  h2:
+    console:
+      enabled: false  # Oracle 사용으로 비활성화
+
+# 개발용 Oracle 서비스 (낮은 성능)
+  datasource:
+    url: jdbc:oracle:thin:@senior_low?TNS_ADMIN=${ORACLE_TNS_ADMIN:src/main/resources/wallet}
+
+logging:
+  level:
+    root: INFO
+    com.eardream: DEBUG
+
+# 개발 환경 Actuator 설정
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"
+
+---
+# 프로덕션 환경 설정
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+# 프로덕션용 Oracle 서비스 (고성능)
+  datasource:
+    url: jdbc:oracle:thin:@senior_high?TNS_ADMIN=${ORACLE_TNS_ADMIN:src/main/resources/wallet}
+    hikari:
+      maximum-pool-size: 20
+      connection-timeout: 30000
+
+logging:
+  level:
+    root: WARN
+    com.eardream: INFO
+  file:
+    name: /var/log/eardream/application.log
+  logback:
+    rollingpolicy:
+      max-file-size: 10MB
+      max-history: 30
+      total-size-cap: 1GB
+
+# 프로덕션 환경 Actuator 설정 (보안 강화)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: never

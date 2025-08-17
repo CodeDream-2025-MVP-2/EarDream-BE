@@ -1,0 +1,60 @@
+[Unit]
+Description=EarDream MVP Spring Boot Application
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/eardream
+ExecStart=/usr/bin/java -jar \
+    -Xms512m \
+    -Xmx1024m \
+    -Dspring.profiles.active=prod \
+    -Dserver.port=8080 \
+    -Dlogging.file.name=/var/log/eardream/application.log \
+    -Dlogging.level.com.eardream=INFO \
+    -Dlogging.level.org.springframework.security=DEBUG \
+    /opt/eardream/eardream.jar
+
+# 환경 변수 설정
+Environment=JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
+Environment=SPRING_PROFILES_ACTIVE=prod
+Environment=SERVER_PORT=8080
+
+# 환경 변수 파일 (별도 관리)
+EnvironmentFile=-/opt/eardream/application.env
+
+# 서비스 관리 설정
+Restart=always
+RestartSec=10
+StartLimitInterval=30
+StartLimitBurst=3
+
+# 로그 설정
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=eardream
+
+# 보안 설정
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/eardream /var/log/eardream /tmp
+
+# 리소스 제한
+MemoryMax=1.5G
+MemoryHigh=1.2G
+CPUQuota=80%
+
+# 타임아웃 설정
+TimeoutStartSec=120
+TimeoutStopSec=30
+
+# PID 파일
+PIDFile=/var/run/eardream.pid
+
+[Install]
+WantedBy=multi-user.target
