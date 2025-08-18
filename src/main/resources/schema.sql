@@ -24,6 +24,7 @@ CREATE TABLE families (
                           id                NUMBER GENERATED AS IDENTITY PRIMARY KEY,
                           clerk_org_id      VARCHAR2(255) UNIQUE NOT NULL,
                           family_name       VARCHAR2(100) NOT NULL,
+                          family_profile_image_url VARCHAR2(500),
                           monthly_deadline  NUMBER(1) CHECK (monthly_deadline IN (2, 4)),
                           invite_code       VARCHAR2(10) UNIQUE NOT NULL,
                           status            VARCHAR2(20) DEFAULT 'ACTIVE',
@@ -178,6 +179,7 @@ COMMENT ON COLUMN users.updated_at IS '최종 수정일시';
 COMMENT ON COLUMN families.id IS '가족 그룹 내부 고유 ID (대체키, 자동증가)';
 COMMENT ON COLUMN families.clerk_org_id IS 'Clerk Organization ID';
 COMMENT ON COLUMN families.family_name IS '가족 그룹 이름';
+COMMENT ON COLUMN families.family_profile_image_url IS '가족 그룹 프로필 이미지 로컬 저장 경로';
 COMMENT ON COLUMN families.monthly_deadline IS '월간 소식지 마감 주차 (2=둘째주, 4=넷째주)';
 COMMENT ON COLUMN families.invite_code IS '가족 초대용 고유 코드 (10자리)';
 COMMENT ON COLUMN families.status IS '가족 그룹 상태 (ACTIVE, INACTIVE)';
