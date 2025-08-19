@@ -6,7 +6,7 @@ import com.eardream.domain.user.dto.UserDto;
 import com.eardream.domain.user.entity.User;
 import com.eardream.domain.user.entity.UserType;
 import com.eardream.domain.user.mapper.UserMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,14 +19,10 @@ import java.util.stream.Collectors;
  */
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class UserService {
     
     private final UserMapper userMapper;
-    
-    @Autowired
-    public UserService(UserMapper userMapper) {
-        this.userMapper = userMapper;
-    }
     
     /**
      * 사용자 생성
@@ -34,8 +30,8 @@ public class UserService {
     @Transactional
     public UserDto createUser(CreateUserRequest request) {
         // 중복 검증
-        if (request.getClerkId() != null && userMapper.existsByClerkId(request.getClerkId()) > 0) {
-            throw new IllegalArgumentException("이미 존재하는 Clerk ID입니다: " + request.getClerkId());
+        if (request.getKakaoId() != null && userMapper.existsByKakaoId(request.getKakaoId()) > 0) {
+            throw new IllegalArgumentException("이미 존재하는 Kakao ID입니다: " + request.getKakaoId());
         }
         
         if (request.getPhoneNumber() != null && userMapper.existsByPhoneNumber(request.getPhoneNumber()) > 0) {
@@ -44,7 +40,7 @@ public class UserService {
         
         // 비즈니스 로직 검증
         if (UserType.ACTIVE_USER.equals(request.getUserType()) && !request.isValidForActiveUser()) {
-            throw new IllegalArgumentException("활성 사용자는 Clerk ID가 필수입니다");
+            throw new IllegalArgumentException("활성 사용자는 Kakao ID가 필수입니다");
         }
         
         if (UserType.PENDING_RECIPIENT.equals(request.getUserType()) && !request.isValidForPendingRecipient()) {
@@ -73,11 +69,11 @@ public class UserService {
     }
     
     /**
-     * Clerk ID로 사용자 조회
+     * Kakao ID로 사용자 조회
      */
-    public UserDto getUserByClerkId(String clerkId) {
-        User user = userMapper.findByClerkId(clerkId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + clerkId));
+    public UserDto getUserByKakaoId(String kakaoId) {
+        User user = userMapper.findByKakaoId(kakaoId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + kakaoId));
         return convertToDto(user);
     }
     
@@ -197,10 +193,10 @@ public class UserService {
     }
     
     /**
-     * 사용자 존재 여부 확인 - Clerk ID
+     * 사용자 존재 여부 확인 - Kakao ID
      */
-    public boolean existsByClerkId(String clerkId) {
-        return userMapper.existsByClerkId(clerkId) > 0;
+    public boolean existsByKakaoId(String kakaoId) {
+        return userMapper.existsByKakaoId(kakaoId) > 0;
     }
     
     /**
@@ -243,7 +239,7 @@ public class UserService {
         User user;
         
         if (UserType.ACTIVE_USER.equals(request.getUserType())) {
-            user = User.createActiveUser(request.getClerkId(), request.getName(), request.getPhoneNumber());
+            user = User.createActiveUser(request.getKakaoId(), request.getName(), request.getPhoneNumber());
         } else {
             user = User.createPendingRecipient(request.getName(), request.getPhoneNumber(), request.getAddress());
         }
@@ -290,20 +286,20 @@ public class UserService {
      * User 엔티티를 UserDto로 변환
      */
     private UserDto convertToDto(User user) {
-        UserDto dto = new UserDto();
-        dto.setUserId(user.getId());
-        dto.setClerkId(user.getClerkId());
-        dto.setName(user.getName());
-        dto.setPhoneNumber(user.getPhoneNumber());
-        dto.setProfileImageUrl(user.getProfileImageUrl());
-        dto.setBirthDate(user.getBirthDate());
-        dto.setAddress(user.getAddress());
-        dto.setUserType(user.getUserType());
-        dto.setFamilyRole(user.getFamilyRole());
-        dto.setIsLeader(user.getIsLeader());
-        dto.setIsReceiver(user.getIsReceiver());
-        dto.setCreatedAt(user.getCreatedAt());
-        dto.setUpdatedAt(user.getUpdatedAt());
-        return dto;
+        return UserDto.builder()
+                .userId(user.getId())
+                .kakaoId(user.getKakaoId())
+                .name(user.getName())
+                .phoneNumber(user.getPhoneNumber())
+                .profileImageUrl(user.getProfileImageUrl())
+                .birthDate(user.getBirthDate())
+                .address(user.getAddress())
+                .userType(user.getUserType())
+                .familyRole(user.getFamilyRole())
+                .isLeader(user.getIsLeader())
+                .isReceiver(user.getIsReceiver())
+                .createdAt(user.getCreatedAt())
+                .updatedAt(user.getUpdatedAt())
+                .build();
     }
 }

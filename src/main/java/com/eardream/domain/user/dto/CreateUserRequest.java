@@ -2,6 +2,7 @@ package com.eardream.domain.user.dto;
 
 import com.eardream.domain.user.entity.UserType;
 import com.fasterxml.jackson.annotation.JsonFormat;
+import lombok.*;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -12,6 +13,10 @@ import java.time.LocalDate;
 /**
  * 사용자 생성 요청 DTO
  */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class CreateUserRequest {
     
     @NotBlank(message = "이름은 필수입니다")
@@ -35,100 +40,23 @@ public class CreateUserRequest {
     @Size(max = 50, message = "가족 역할은 50자를 초과할 수 없습니다")
     private String familyRole;
     
+    @Builder.Default
     private Boolean isReceiver = false;
     
-    // Clerk ID (활성 사용자인 경우 필수)
-    private String clerkId;
+    // 카카오 ID (활성 사용자인 경우 필수)
+    private String kakaoId;
     
-    // 기본 생성자
-    public CreateUserRequest() {}
-    
-    // 생성자
-    public CreateUserRequest(String name, String phoneNumber, UserType userType) {
-        this.name = name;
-        this.phoneNumber = phoneNumber;
-        this.userType = userType;
-    }
-    
-    // 검증 메서드
+    /**
+     * 활성 사용자 유효성 검증
+     */
     public boolean isValidForActiveUser() {
-        return UserType.ACTIVE_USER.equals(userType) && clerkId != null && !clerkId.trim().isEmpty();
+        return UserType.ACTIVE_USER.equals(userType) && kakaoId != null && !kakaoId.trim().isEmpty();
     }
     
+    /**
+     * 대기 중인 수신자 유효성 검증
+     */
     public boolean isValidForPendingRecipient() {
         return UserType.PENDING_RECIPIENT.equals(userType) && address != null && !address.trim().isEmpty();
-    }
-    
-    // Getters and Setters
-    public String getName() {
-        return name;
-    }
-    
-    public void setName(String name) {
-        this.name = name;
-    }
-    
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-    
-    public void setPhoneNumber(String phoneNumber) {
-        this.phoneNumber = phoneNumber;
-    }
-    
-    public String getProfileImageUrl() {
-        return profileImageUrl;
-    }
-    
-    public void setProfileImageUrl(String profileImageUrl) {
-        this.profileImageUrl = profileImageUrl;
-    }
-    
-    public LocalDate getBirthDate() {
-        return birthDate;
-    }
-    
-    public void setBirthDate(LocalDate birthDate) {
-        this.birthDate = birthDate;
-    }
-    
-    public String getAddress() {
-        return address;
-    }
-    
-    public void setAddress(String address) {
-        this.address = address;
-    }
-    
-    public UserType getUserType() {
-        return userType;
-    }
-    
-    public void setUserType(UserType userType) {
-        this.userType = userType;
-    }
-    
-    public String getFamilyRole() {
-        return familyRole;
-    }
-    
-    public void setFamilyRole(String familyRole) {
-        this.familyRole = familyRole;
-    }
-    
-    public Boolean getIsReceiver() {
-        return isReceiver;
-    }
-    
-    public void setIsReceiver(Boolean isReceiver) {
-        this.isReceiver = isReceiver;
-    }
-    
-    public String getClerkId() {
-        return clerkId;
-    }
-    
-    public void setClerkId(String clerkId) {
-        this.clerkId = clerkId;
     }
 }

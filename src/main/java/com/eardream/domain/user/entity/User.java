@@ -1,25 +1,24 @@
 package com.eardream.domain.user.entity;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import lombok.ToString;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 /**
  * 사용자 및 받는 분 정보를 통합 관리하는 엔티티
- * 초대받은 사용자는 clerkId가 null인 상태로 시작
+ * 초대받은 사용자는 kakaoId가 null인 상태로 시작
  */
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
+@AllArgsConstructor
 @ToString(exclude = {"phoneNumber", "address"}) // 민감 정보 제외
 public class User {
     
     private Long id;                    // 사용자 내부 고유 ID (대체키, 자동증가)
-    private String clerkId;             // Clerk 사용자 고유 ID (회원가입 완료 시 설정)
+    private String kakaoId;             // 카카오 사용자 고유 ID (회원가입 완료 시 설정)
     private String name;                // 사용자/받는 분 실명
     private String phoneNumber;         // 전화번호 (암호화 저장)
     private String profileImageUrl;     // 프로필 이미지 로컬 저장 경로
@@ -33,30 +32,38 @@ public class User {
     private LocalDateTime updatedAt;    // 최종 수정일시
     
     
-    // 생성자
-    public User(String name, String phoneNumber, UserType userType) {
-        this.name = name;
-        this.phoneNumber = phoneNumber;
-        this.userType = userType;
-        this.isLeader = false;
-        this.isReceiver = false;
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    /**
+     * 팩토리 메서드 - 활성 사용자 생성
+     */
+    public static User createActiveUser(String kakaoId, String name, String phoneNumber) {
+        LocalDateTime now = LocalDateTime.now();
+        return User.builder()
+                .kakaoId(kakaoId)
+                .name(name)
+                .phoneNumber(phoneNumber)
+                .userType(UserType.ACTIVE_USER)
+                .isLeader(false)
+                .isReceiver(false)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
     }
     
-    // 팩토리 메서드 - 활성 사용자 생성
-    public static User createActiveUser(String clerkId, String name, String phoneNumber) {
-        User user = new User(name, phoneNumber, UserType.ACTIVE_USER);
-        user.clerkId = clerkId;
-        return user;
-    }
-    
-    // 팩토리 메서드 - 초대받은 받는 분 생성
+    /**
+     * 팩토리 메서드 - 초대받은 받는 분 생성
+     */
     public static User createPendingRecipient(String name, String phoneNumber, String address) {
-        User user = new User(name, phoneNumber, UserType.PENDING_RECIPIENT);
-        user.address = address;
-        user.isReceiver = true;
-        return user;
+        LocalDateTime now = LocalDateTime.now();
+        return User.builder()
+                .name(name)
+                .phoneNumber(phoneNumber)
+                .address(address)
+                .userType(UserType.PENDING_RECIPIENT)
+                .isLeader(false)
+                .isReceiver(true)
+                .createdAt(now)
+                .updatedAt(now)
+                .build();
     }
     
     // 비즈니스 메서드

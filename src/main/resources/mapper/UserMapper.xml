@@ -8,7 +8,7 @@
 
     <!-- 공통 컬럼 정의 -->
     <sql id="userColumns">
-        id, clerk_id, name, phone_number, profile_image_url, birth_date, address,
+        id, kakao_id, name, phone_number, profile_image_url, birth_date, address,
         user_type, family_role, is_leader, is_receiver, created_at, updated_at
     </sql>
 
@@ -16,10 +16,10 @@
     <insert id="insertUser" parameterType="User" 
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO users (
-            clerk_id, name, phone_number, profile_image_url, birth_date, address,
+            kakao_id, name, phone_number, profile_image_url, birth_date, address,
             user_type, family_role, is_leader, is_receiver, created_at, updated_at
         ) VALUES (
-            #{clerkId},
+            #{kakaoId},
             #{name},
             #{phoneNumber},
             #{profileImageUrl},
@@ -41,11 +41,11 @@
         WHERE id = #{id}
     </select>
 
-    <!-- Clerk ID로 사용자 조회 -->
-    <select id="findByClerkId" parameterType="string" resultType="User">
+    <!-- Kakao ID로 사용자 조회 -->
+    <select id="findByKakaoId" parameterType="string" resultType="User">
         SELECT <include refid="userColumns"/>
         FROM users
-        WHERE clerk_id = #{clerkId}
+        WHERE kakao_id = #{kakaoId}
     </select>
 
     <!-- 전화번호로 사용자 조회 -->
@@ -125,9 +125,9 @@
         WHERE user_type = #{userType}
     </select>
 
-    <!-- 사용자 존재 여부 확인 - Clerk ID -->
-    <select id="existsByClerkId" parameterType="string" resultType="int">
-        SELECT COUNT(*) FROM users WHERE clerk_id = #{clerkId}
+    <!-- 사용자 존재 여부 확인 - Kakao ID -->
+    <select id="existsByKakaoId" parameterType="string" resultType="int">
+        SELECT COUNT(*) FROM users WHERE kakao_id = #{kakaoId}
     </select>
 
     <!-- 사용자 존재 여부 확인 - 전화번호 -->
