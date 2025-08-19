@@ -4,15 +4,16 @@
 -- 1. 테이블 생성 (Table Creation)
 -- =================================================================
 
+-- ✅ Phase 1: 사용자 관리 테이블 (구현 완료)
 CREATE TABLE users (
                        id                NUMBER GENERATED AS IDENTITY PRIMARY KEY,
-                       clerk_id          VARCHAR2(255) UNIQUE,
+                       kakao_id          VARCHAR2(255) UNIQUE,
                        name              VARCHAR2(100) NOT NULL,
                        phone_number      VARCHAR2(20),
                        profile_image_url VARCHAR2(500),
                        birth_date        DATE,
                        address           VARCHAR2(500),
-                       user_type         VARCHAR2(20) DEFAULT 'ACTIVE_USER' CHECK (user_type IN ('PENDING_RECIPIENT', 'ACTIVE_USER')),
+                       user_type         VARCHAR2(20) CHECK (user_type IN ('PENDING_RECIPIENT', 'ACTIVE_USER')),
                        family_role       VARCHAR2(50),
                        is_leader         CHAR(1) DEFAULT 'N' CHECK (is_leader IN ('Y', 'N')),
                        is_receiver         CHAR(1) DEFAULT 'N' CHECK (is_receiver IN ('Y', 'N')),
@@ -20,9 +21,9 @@ CREATE TABLE users (
                        updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
+-- ⏳ Phase 2: 가족 그룹 관리 테이블 (미구현 - Phase 2에서 개발 예정)
 CREATE TABLE families (
                           id                NUMBER GENERATED AS IDENTITY PRIMARY KEY,
-                          clerk_org_id      VARCHAR2(255) UNIQUE NOT NULL,
                           family_name       VARCHAR2(100) NOT NULL,
                           family_profile_image_url VARCHAR2(500),
                           monthly_deadline  NUMBER(1) CHECK (monthly_deadline IN (2, 4)),
@@ -32,7 +33,7 @@ CREATE TABLE families (
                           updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-
+-- ⏳ Phase 2: 가족 구성원 관리 테이블 (미구현)
 CREATE TABLE family_members (
                                 id                NUMBER GENERATED AS IDENTITY PRIMARY KEY,
                                 family_id         NUMBER NOT NULL,
@@ -125,27 +126,12 @@ CREATE TABLE payment_histories (
                                   CONSTRAINT fk_payment_histories_subscription FOREIGN KEY (subscription_id) REFERENCES subscriptions(id)
 );
 
--- SMS 인증 테이블 (CoolSMS)
-CREATE TABLE sms_verifications (
-                                  id                    NUMBER GENERATED AS IDENTITY PRIMARY KEY,
-                                  phone_number          VARCHAR2(20) NOT NULL,
-                                  verification_code     VARCHAR2(6) NOT NULL,
-                                  purpose               VARCHAR2(20) NOT NULL CHECK (purpose IN ('SIGNUP', 'LOGIN', 'PASSWORD_RESET', 'PHONE_CHANGE')),
-                                  status                VARCHAR2(20) DEFAULT 'SENT' CHECK (status IN ('SENT', 'VERIFIED', 'EXPIRED', 'FAILED')),
-                                  coolsms_group_id      VARCHAR2(100),
-                                  coolsms_message_id    VARCHAR2(100),
-                                  attempts              NUMBER(1) DEFAULT 0,
-                                  max_attempts          NUMBER(1) DEFAULT 3,
-                                  expires_at            TIMESTAMP NOT NULL,
-                                  verified_at           TIMESTAMP,
-                                  created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
 
 -- =================================================================
 -- 2. 테이블 코멘트 (Table Comments)
 -- =================================================================
 
-COMMENT ON TABLE users IS '사용자 및 받는 분 정보를 통합 관리하는 테이블 (초대받은 사용자는 clerk_id가 null인 상태로 시작)';
+COMMENT ON TABLE users IS '사용자 및 받는 분 정보를 통합 관리하는 테이블 (초대받은 사용자는 kakao_id가 null인 상태로 시작)';
 COMMENT ON TABLE families IS '가족 그룹 정보를 관리하는 테이블';
 COMMENT ON TABLE family_members IS '가족 그룹 구성원 정보와 권한을 관리하는 테이블';
 COMMENT ON TABLE posts IS '가족 구성원이 작성한 소식 게시글을 관리하는 테이블';
@@ -154,7 +140,6 @@ COMMENT ON TABLE subscriptions IS '가족 그룹의 정기 구독 및 카카오�
 COMMENT ON TABLE publications IS '월간 소식지 발행 및 배송 상태를 관리하는 테이블';
 COMMENT ON TABLE invitations IS '가족 그룹 초대 코드 생성 및 사용 이력을 관리하는 테이블';
 COMMENT ON TABLE payment_histories IS '카카오페이 구독 결제 내역 및 상태를 관리하는 테이블';
-COMMENT ON TABLE sms_verifications IS 'CoolSMS 인증 서비스를 통한 휴대폰 인증 관리 테이블';
 
 -- =================================================================
 -- 3. 컬럼 코멘트 (Column Comments)
@@ -162,7 +147,7 @@ COMMENT ON TABLE sms_verifications IS 'CoolSMS 인증 서비스를 통한 휴대
 
 -- users
 COMMENT ON COLUMN users.id IS '사용자 내부 고유 ID (대체키, 자동증가)';
-COMMENT ON COLUMN users.clerk_id IS 'Clerk 사용자 고유 ID (회원가입 완료 시 설정, 초대받은 사용자는 null)';
+COMMENT ON COLUMN users.kakao_id IS '카카오 사용자 고유 ID (회원가입 완료 시 설정, 초대받은 사용자는 null)';
 COMMENT ON COLUMN users.name IS '사용자/받는 분 실명';
 COMMENT ON COLUMN users.phone_number IS '전화번호 (암호화 저장)';
 COMMENT ON COLUMN users.profile_image_url IS '프로필 이미지 로컬 저장 경로';
@@ -177,7 +162,6 @@ COMMENT ON COLUMN users.updated_at IS '최종 수정일시';
 
 -- families
 COMMENT ON COLUMN families.id IS '가족 그룹 내부 고유 ID (대체키, 자동증가)';
-COMMENT ON COLUMN families.clerk_org_id IS 'Clerk Organization ID';
 COMMENT ON COLUMN families.family_name IS '가족 그룹 이름';
 COMMENT ON COLUMN families.family_profile_image_url IS '가족 그룹 프로필 이미지 로컬 저장 경로';
 COMMENT ON COLUMN families.monthly_deadline IS '월간 소식지 마감 주차 (2=둘째주, 4=넷째주)';
@@ -257,17 +241,3 @@ COMMENT ON COLUMN payment_histories.kakaopay_order_id IS '카카오페이 주문
 COMMENT ON COLUMN payment_histories.approved_at IS '결제 승인일시';
 COMMENT ON COLUMN payment_histories.failed_reason IS '결제 실패 사유';
 COMMENT ON COLUMN payment_histories.created_at IS '결제 요청일시';
-
--- sms_verifications
-COMMENT ON COLUMN sms_verifications.id IS 'SMS 인증 내부 고유 ID (대체키, 자동증가)';
-COMMENT ON COLUMN sms_verifications.phone_number IS '인증 대상 전화번호';
-COMMENT ON COLUMN sms_verifications.verification_code IS '6자리 인증번호';
-COMMENT ON COLUMN sms_verifications.purpose IS '인증 목적 (SIGNUP: 회원가입, LOGIN: 로그인, PASSWORD_RESET: 비밀번호 재설정, PHONE_CHANGE: 전화번호 변경)';
-COMMENT ON COLUMN sms_verifications.status IS '인증 상태 (SENT: 발송완료, VERIFIED: 인증완료, EXPIRED: 만료, FAILED: 발송실패)';
-COMMENT ON COLUMN sms_verifications.coolsms_group_id IS 'CoolSMS 그룹 ID (대량 발송 시 사용)';
-COMMENT ON COLUMN sms_verifications.coolsms_message_id IS 'CoolSMS 메시지 고유 ID';
-COMMENT ON COLUMN sms_verifications.attempts IS '인증 시도 횟수';
-COMMENT ON COLUMN sms_verifications.max_attempts IS '최대 인증 시도 횟수 (기본값: 3회)';
-COMMENT ON COLUMN sms_verifications.expires_at IS '인증번호 만료일시';
-COMMENT ON COLUMN sms_verifications.verified_at IS '인증 완료일시';
-COMMENT ON COLUMN sms_verifications.created_at IS '인증번호 발송일시';

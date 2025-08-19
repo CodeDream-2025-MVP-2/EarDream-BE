@@ -6,13 +6,13 @@ package com.eardream.domain.user.entity;
 public enum UserType {
     /**
      * 초대받은 사람 (회원가입 전 상태)
-     * clerkId가 null이며, 주로 받는 분(어르신) 정보
+     * kakaoId가 null이며, 주로 받는 분(어르신) 정보
      */
     PENDING_RECIPIENT("PENDING_RECIPIENT", "초대받은 사람"),
     
     /**
      * 회원가입 완료된 활성 사용자
-     * clerkId가 설정되어 있고, 앱을 사용할 수 있는 상태
+     * kakaoId가 설정되어 있고, 앱을 사용할 수 있는 상태
      */
     ACTIVE_USER("ACTIVE_USER", "활성 사용자");
     

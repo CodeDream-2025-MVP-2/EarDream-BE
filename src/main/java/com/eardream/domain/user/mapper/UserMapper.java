@@ -25,9 +25,9 @@ public interface UserMapper {
     Optional<User> findById(@Param("id") Long id);
     
     /**
-     * Clerk ID로 사용자 조회
+     * Kakao ID로 사용자 조회
      */
-    Optional<User> findByClerkId(@Param("clerkId") String clerkId);
+    Optional<User> findByKakaoId(@Param("kakaoId") String kakaoId);
     
     /**
      * 전화번호로 사용자 조회
@@ -80,9 +80,9 @@ public interface UserMapper {
     int countByUserType(@Param("userType") UserType userType);
     
     /**
-     * 사용자 존재 여부 확인 - Clerk ID
+     * 사용자 존재 여부 확인 - Kakao ID
      */
-    int existsByClerkId(@Param("clerkId") String clerkId);
+    int existsByKakaoId(@Param("kakaoId") String kakaoId);
     
     /**
      * 사용자 존재 여부 확인 - 전화번호

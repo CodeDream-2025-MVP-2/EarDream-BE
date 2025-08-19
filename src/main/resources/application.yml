@@ -1,5 +1,4 @@
 # EarDream Application Configuration
-# MVP 개발용 Spring Boot 설정 (팀원 제공 Oracle 설정 기반)
 
 server:
   port: 8080
@@ -10,12 +9,12 @@ spring:
   
   # 프로필별 설정
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE}
     
-  # Oracle Database 연결 설정 (팀원 제공 Wallet 사용)
+  # Oracle Database 연결 설정
   datasource:
-    url: jdbc:oracle:thin:@senior_medium?TNS_ADMIN=${ORACLE_TNS_ADMIN:src/main/resources/wallet}
-    username: ${DB_USERNAME:ADMIN}
+    url: jdbc:oracle:thin:@senior_high?TNS_ADMIN=${ORACLE_TNS_ADMIN}
+    username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: oracle.jdbc.OracleDriver
     hikari:
@@ -47,17 +46,23 @@ logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
 
-# Clerk Authentication 설정
-clerk:
-  secret-key: ${CLERK_SECRET_KEY}
-  publishable-key: ${CLERK_PUBLISHABLE_KEY}
-  api-url: ${CLERK_API_URL:https://api.clerk.com}
+# JWT 인증 설정
+jwt:
+  secret: ${JWT_SECRET_KEY}
+  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000}    # 1시간 (밀리초)
+  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000} # 7일 (밀리초)
 
-# AWS S3 설정 (파일 업로드용)
-aws:
-  s3:
-    bucket: ${AWS_S3_BUCKET:eardream-files}
-    region: ${AWS_REGION:ap-northeast-2}
+# 카카오 OAuth 설정
+kakao:
+  client-id: ${KAKAO_CLIENT_ID}
+  client-secret: ${KAKAO_CLIENT_SECRET}
+  redirect-uri: ${KAKAO_REDIRECT_URI}
+
+# 파일 업로드 설정 (EC2 로컬 파일 시스템)
+file:
+  upload:
+    path: ${FILE_UPLOAD_PATH:/home/ubuntu/eardream/uploads}
+    max-size: ${FILE_MAX_SIZE:10MB}
 
 # Actuator 설정 (모니터링 및 헬스체크)
 management:
@@ -96,8 +101,8 @@ spring:
       enabled: false  # Oracle 사용으로 비활성화
 
 # 개발용 Oracle 서비스 (낮은 성능)
-  datasource:
-    url: jdbc:oracle:thin:@senior_low?TNS_ADMIN=${ORACLE_TNS_ADMIN:src/main/resources/wallet}
+#  datasource:
+#    url: jdbc:oracle:thin:@senior_low?TNS_ADMIN=${ORACLE_TNS_ADMIN:src/main/resources/wallet}
 
 logging:
   level:
@@ -120,7 +125,9 @@ spring:
 
 # 프로덕션용 Oracle 서비스 (고성능)
   datasource:
-    url: jdbc:oracle:thin:@senior_high?TNS_ADMIN=${ORACLE_TNS_ADMIN:src/main/resources/wallet}
+    url: jdbc:oracle:thin:@senior_high?TNS_ADMIN=${ORACLE_TNS_ADMIN}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
     hikari:
       maximum-pool-size: 20
       connection-timeout: 30000

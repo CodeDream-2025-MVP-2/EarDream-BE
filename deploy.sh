@@ -4,9 +4,9 @@
 # 사용법: ./deploy.sh [build|deploy|restart|logs]
 
 # AWS EC2 설정
-EC2_HOST="${EC2_HOST:-your-ec2-ip}"
-EC2_USER="${EC2_USER:-ubuntu}"
-PEM_KEY="${PEM_KEY:-your-key.pem}"
+EC2_HOST="${EC2_HOST}"
+EC2_USER="${EC2_USER}"
+PEM_KEY="${PEM_KEY}"
 APP_NAME="eardream-backend"
 APP_PORT="8080"
 
