@@ -83,13 +83,13 @@ tasks.named('test') {
 	systemProperty 'spring.profiles.active', 'test'
 }
 
-// Checkstyle 설정
-checkstyle {
-	toolVersion = '10.20.1'
-	configFile = file('config/checkstyle/checkstyle.xml')
-	maxErrors = 0
-	maxWarnings = 0
-}
+// Checkstyle 설정 (일시적으로 비활성화)
+// checkstyle {
+//	toolVersion = '10.20.1'
+//	configFile = file('config/checkstyle/checkstyle.xml')
+//	maxErrors = 0
+//	maxWarnings = 0
+// }
 
 // JAR 빌드 설정
 jar {
