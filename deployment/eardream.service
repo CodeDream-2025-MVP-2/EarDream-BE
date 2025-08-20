@@ -1,0 +1,30 @@
+[Unit]
+Description=EarDream Spring Boot Application
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/eardream
+
+# Environment variables
+EnvironmentFile=/etc/environment
+Environment="ORACLE_TNS_ADMIN=/opt/oracle/wallet"
+
+# Java execution
+ExecStart=/usr/bin/java -jar \
+  -Dspring.profiles.active=${SPRING_PROFILES_ACTIVE} \
+  -Doracle.net.tns_admin=${ORACLE_TNS_ADMIN} \
+  -Dfile.upload.path=/opt/eardream/uploads \
+  /opt/eardream/eardream.jar
+
+# Restart policy
+Restart=on-failure
+RestartSec=10
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
