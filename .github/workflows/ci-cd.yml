@@ -43,6 +43,12 @@ jobs:
       env:
         DB_USERNAME: ${{ secrets.DB_USERNAME }}
         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+        KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+        KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+        KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
+        ORACLE_TNS_ADMIN: ${{ secrets.ORACLE_TNS_ADMIN }}
+        SPRING_PROFILES_ACTIVE: prod
 
   build:
     name: Build Application
@@ -75,6 +81,15 @@ jobs:
       
     - name: Build with Gradle
       run: ./gradlew build -x test
+      env:
+        DB_USERNAME: ${{ secrets.DB_USERNAME }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        JWT_SECRET_KEY: ${{ secrets.JWT_SECRET_KEY }}
+        KAKAO_CLIENT_ID: ${{ secrets.KAKAO_CLIENT_ID }}
+        KAKAO_CLIENT_SECRET: ${{ secrets.KAKAO_CLIENT_SECRET }}
+        KAKAO_REDIRECT_URI: ${{ secrets.KAKAO_REDIRECT_URI }}
+        ORACLE_TNS_ADMIN: ${{ secrets.ORACLE_TNS_ADMIN }}
+        SPRING_PROFILES_ACTIVE: prod
       
     - name: Upload build artifacts
       if: github.ref == 'refs/heads/main'

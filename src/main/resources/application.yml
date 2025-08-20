@@ -49,8 +49,8 @@ logging:
 # JWT 인증 설정
 jwt:
   secret: ${JWT_SECRET_KEY}
-  access-token-expiration: ${JWT_ACCESS_TOKEN_EXPIRATION:3600000}    # 1시간 (밀리초)
-  refresh-token-expiration: ${JWT_REFRESH_TOKEN_EXPIRATION:604800000} # 7일 (밀리초)
+  access-token-expiration: 3600000    # 1시간 (밀리초)
+  refresh-token-expiration: 604800000 # 7일 (밀리초)
 
 # 카카오 OAuth 설정
 kakao:
@@ -61,8 +61,8 @@ kakao:
 # 파일 업로드 설정 (EC2 로컬 파일 시스템)
 file:
   upload:
-    path: ${FILE_UPLOAD_PATH:/home/ubuntu/eardream/uploads}
-    max-size: ${FILE_MAX_SIZE:10MB}
+    path: /home/ubuntu/eardream/uploads
+    max-size: 10MB
 
 # Actuator 설정 (모니터링 및 헬스체크)
 management:
@@ -99,10 +99,6 @@ spring:
   h2:
     console:
       enabled: false  # Oracle 사용으로 비활성화
-
-# 개발용 Oracle 서비스 (낮은 성능)
-#  datasource:
-#    url: jdbc:oracle:thin:@senior_low?TNS_ADMIN=${ORACLE_TNS_ADMIN:src/main/resources/wallet}
 
 logging:
   level:
