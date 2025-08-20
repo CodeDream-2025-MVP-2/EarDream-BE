@@ -128,6 +128,43 @@ jobs:
           sudo mkdir -p /opt/eardream
           sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /opt/eardream
           
+          # Create systemd service file
+          sudo tee /etc/systemd/system/eardream.service > /dev/null <<EOF
+          [Unit]
+          Description=EarDream Spring Boot Application
+          After=network.target
+          
+          [Service]
+          Type=simple
+          User=${{ secrets.EC2_USERNAME }}
+          WorkingDirectory=/opt/eardream
+          
+          # Environment variables
+          EnvironmentFile=/etc/environment
+          Environment="ORACLE_TNS_ADMIN=/opt/oracle/wallet"
+          
+          # Java execution
+          ExecStart=/usr/bin/java -jar \\
+            -Dspring.profiles.active=prod \\
+            -Doracle.net.tns_admin=/opt/oracle/wallet \\
+            -Dfile.upload.path=/opt/eardream/uploads \\
+            /opt/eardream/eardream.jar
+          
+          # Restart policy
+          Restart=on-failure
+          RestartSec=10
+          
+          # Logging
+          StandardOutput=journal
+          StandardError=journal
+          
+          [Install]
+          WantedBy=multi-user.target
+          EOF
+          
+          # Reload systemd
+          sudo systemctl daemon-reload
+          
           # Stop existing service
           sudo systemctl stop eardream || echo "Service not running"
           
@@ -159,8 +196,8 @@ jobs:
           sudo mkdir -p /opt/oracle/wallet
           sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /opt/oracle/wallet
           
-          # Move JAR to application directory
-          sudo mv /tmp/*.jar /opt/eardream/eardream.jar
+          # Move JAR to application directory (rename from build output)
+          sudo mv /tmp/eardream-backend.jar /opt/eardream/eardream.jar
           
           # Set permissions
           sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /opt/eardream/eardream.jar
