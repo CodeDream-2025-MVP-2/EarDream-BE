@@ -16,10 +16,10 @@ public class PostImage {
 	private Long id;
 	private Long postId;
 	private String imageUrl;
-	private String description;
 	private Integer imageOrder;
 	private LocalDateTime createdAt;
 }
+
 
 
 

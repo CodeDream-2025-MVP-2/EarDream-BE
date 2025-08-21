@@ -10,8 +10,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+import com.eardream.global.util.FileUtils;
 
 import java.util.List;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/v1")
@@ -21,6 +27,9 @@ public class PostsController {
 
 	private final PostService postService;
 
+	@Value("${file.upload.path}")
+	private String uploadPath;
+
 	@GetMapping("/familes/{id}/posts")
 	@Operation(summary = "그룹 소식 목록", description = "가족 그룹의 소식 목록을 조회합니다.")
 	public ResponseEntity<ApiResponse<List<PostDto>>> getPosts(@PathVariable("id") Long familyId) {
@@ -28,15 +37,37 @@ public class PostsController {
 		return ResponseEntity.ok(ApiResponse.success(posts));
 	}
 
-	@PostMapping("/familes/{id}/posts")
-	@Operation(summary = "소식 작성", description = "제목/내용과 이미지 목록으로 소식을 작성합니다.")
+	@PostMapping(value = "/familes/{id}/posts", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "소식 작성", description = "제목/내용과 여러 이미지로 소식을 작성합니다.")
 	public ResponseEntity<ApiResponse<PostDto>> createPost(
 			@PathVariable("id") Long familyId,
 			@RequestParam("userId") Long userId,
 			@RequestParam("title") String title,
 			@RequestParam(value = "content", required = false) String content,
-			@RequestBody(required = false) List<PostImageDto> images
-	) {
+			@RequestPart(name = "images", required = false) List<MultipartFile> imageFiles
+
+	) throws Exception {
+		List<PostImageDto> images = null;
+		if (imageFiles != null && !imageFiles.isEmpty()) {
+			images = new ArrayList<>();
+			for (int i = 0; i < imageFiles.size(); i++) {
+				MultipartFile file = imageFiles.get(i);
+				if (file.isEmpty()) continue;
+				if (!FileUtils.isValidFileSize(file)) {
+					return ResponseEntity.badRequest().body(ApiResponse.error("FILE_TOO_LARGE", "이미지 파일이 너무 큽니다"));
+				}
+				if (!FileUtils.isImageFile(file.getOriginalFilename())) {
+					return ResponseEntity.badRequest().body(ApiResponse.error("INVALID_TYPE", "이미지 파일만 허용됩니다"));
+				}
+				String relativePath = FileUtils.saveFile(file, uploadPath, "images");
+				String urlPath = "/uploads/" + StringUtils.trimLeadingCharacter(relativePath.replace("\\", "/"), '/');
+				images.add(PostImageDto.builder()
+						.imageUrl(urlPath)
+						.imageOrder(i + 1)
+						.build());
+			}
+		}
+
 		PostDto created = postService.createPost(familyId, userId, title, content, images);
 		return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(created, "소식이 생성되었습니다"));
 	}
@@ -48,6 +79,7 @@ public class PostsController {
 		return ResponseEntity.ok(ApiResponse.success(post));
 	}
 }
+
 
 
 

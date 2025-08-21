@@ -18,9 +18,9 @@
 
 	<insert id="insertPostImage" parameterType="PostImage" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
 		INSERT INTO post_images (
-			post_id, image_url, description, image_order, created_at
+			post_id, image_url, image_order, created_at
 		) VALUES (
-			#{postId}, #{imageUrl}, #{description}, #{imageOrder}, #{createdAt}
+			#{postId}, #{imageUrl}, #{imageOrder}, #{createdAt}
 		)
 	</insert>
 
@@ -38,13 +38,10 @@
 	</select>
 
 	<select id="findImagesByPostId" parameterType="long" resultType="com.eardream.domain.posts.entity.PostImage">
-		SELECT id, post_id, image_url, description, image_order, created_at
+		SELECT id, post_id, image_url, image_order, created_at
 		FROM post_images
 		WHERE post_id = #{postId}
 		ORDER BY image_order ASC
 	</select>
 
 </mapper>
-
-
-

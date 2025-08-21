@@ -42,7 +42,6 @@ public class PostService {
 				PostImage img = new PostImage();
 				img.setPostId(post.getId());
 				img.setImageUrl(imageDto.getImageUrl());
-				img.setDescription(imageDto.getDescription());
 				img.setImageOrder(imageDto.getImageOrder());
 				img.setCreatedAt(LocalDateTime.now());
 				postMapper.insertPostImage(img);
@@ -68,7 +67,6 @@ public class PostService {
 		List<PostImageDto> imageDtos = images.stream().map(img -> PostImageDto.builder()
 				.id(img.getId())
 				.imageUrl(img.getImageUrl())
-				.description(img.getDescription())
 				.imageOrder(img.getImageOrder())
 				.build()).collect(Collectors.toList());
 
@@ -85,6 +83,7 @@ public class PostService {
 				.build();
 	}
 }
+
 
 
 

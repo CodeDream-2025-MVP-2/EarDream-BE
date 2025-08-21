@@ -12,9 +12,9 @@ import lombok.NoArgsConstructor;
 public class PostImageDto {
 	private Long id;
 	private String imageUrl;
-	private String description;
 	private Integer imageOrder;
 }
+
 
 
 
