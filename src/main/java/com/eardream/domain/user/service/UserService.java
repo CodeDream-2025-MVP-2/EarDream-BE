@@ -7,6 +7,7 @@ import com.eardream.domain.user.entity.User;
 import com.eardream.domain.user.entity.UserType;
 import com.eardream.domain.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
+import com.eardream.global.exception.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,13 +40,7 @@ public class UserService {
         }
         
         // 비즈니스 로직 검증
-        if (UserType.ACTIVE_USER.equals(request.getUserType()) && !request.isValidForActiveUser()) {
-            throw new IllegalArgumentException("활성 사용자는 Kakao ID가 필수입니다");
-        }
-        
-        if (UserType.PENDING_RECIPIENT.equals(request.getUserType()) && !request.isValidForPendingRecipient()) {
-            throw new IllegalArgumentException("초대받은 사용자는 주소가 필수입니다");
-        }
+        // userType 기반 검증 제거
         
         // User 엔티티 생성
         User user = createUserEntity(request);
@@ -64,7 +59,7 @@ public class UserService {
      */
     public UserDto getUserById(Long id) {
         User user = userMapper.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("해당하는 유저가 존재하지 않습니다: " + id));
         return convertToDto(user);
     }
     
@@ -89,12 +84,7 @@ public class UserService {
     /**
      * 사용자 유형별 목록 조회
      */
-    public List<UserDto> getUsersByType(UserType userType) {
-        List<User> users = userMapper.findByUserType(userType);
-        return users.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
+    // Removed getUsersByType
     
     /**
      * 가족 리더 목록 조회
@@ -216,9 +206,7 @@ public class UserService {
     /**
      * 사용자 유형별 수 조회
      */
-    public int getUserCountByType(UserType userType) {
-        return userMapper.countByUserType(userType);
-    }
+    // Removed getUserCountByType
     
     /**
      * 최근 생성된 사용자 목록 조회
@@ -248,7 +236,6 @@ public class UserService {
         user.setProfileImageUrl(request.getProfileImageUrl());
         user.setBirthDate(request.getBirthDate());
         user.setFamilyRole(request.getFamilyRole());
-        user.setIsReceiver(request.getIsReceiver());
         
         return user;
     }

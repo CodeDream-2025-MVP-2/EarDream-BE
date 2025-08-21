@@ -20,7 +20,16 @@ public interface PostMapper {
 	List<Post> findPostsByFamilyId(@Param("familyId") Long familyId);
 
 	List<PostImage> findImagesByPostId(@Param("postId") Long postId);
+
+	int updatePost(@Param("id") Long id, @Param("title") String title, @Param("content") String content);
+
+	int deletePost(@Param("id") Long id);
+
+	int deleteImagesByPostId(@Param("postId") Long postId);
 }
+
+
+
 
 
 

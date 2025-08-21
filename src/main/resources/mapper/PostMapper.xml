@@ -44,4 +44,23 @@
 		ORDER BY image_order ASC
 	</select>
 
+	<update id="updatePost">
+		UPDATE posts SET
+			title = COALESCE(#{title}, title),
+			content = COALESCE(#{content}, content),
+			updated_at = SYSTIMESTAMP
+		WHERE id = #{id}
+	</update>
+
+	<delete id="deletePost" parameterType="long">
+		DELETE FROM posts WHERE id = #{id}
+	</delete>
+
+	<delete id="deleteImagesByPostId" parameterType="long">
+		DELETE FROM post_images WHERE post_id = #{postId}
+	</delete>
+
 </mapper>
+
+
+

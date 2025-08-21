@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.eardream.domain.books.mapper.BookMapper">
+
+	<sql id="bookColumns">
+		id, family_id, name, pdf_url, image_url, created_at, updated_at
+	</sql>
+
+	<insert id="insertBook" parameterType="com.eardream.domain.books.entity.Book" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		INSERT INTO books (
+			family_id, name, pdf_url, image_url, created_at, updated_at
+		) VALUES (
+			#{familyId}, #{name}, #{pdfUrl,jdbcType=VARCHAR}, #{imageUrl,jdbcType=VARCHAR}, SYSTIMESTAMP, SYSTIMESTAMP
+		)
+	</insert>
+
+	<select id="findById" parameterType="long" resultType="com.eardream.domain.books.entity.Book">
+		SELECT <include refid="bookColumns"/>
+		FROM books WHERE id = #{id}
+	</select>
+
+	<select id="findByFamilyId" parameterType="long" resultType="com.eardream.domain.books.entity.Book">
+		SELECT <include refid="bookColumns"/>
+		FROM books WHERE family_id = #{familyId}
+		ORDER BY created_at DESC
+	</select>
+
+	<update id="renameBook">
+		UPDATE books SET name = #{name}, updated_at = SYSTIMESTAMP WHERE id = #{id}
+	</update>
+
+	<update id="updateBookFiles">
+		UPDATE books SET
+			pdf_url = #{pdfUrl,jdbcType=VARCHAR},
+			image_url = #{imageUrl,jdbcType=VARCHAR},
+			updated_at = SYSTIMESTAMP
+		WHERE id = #{id}
+	</update>
+
+</mapper>
+
+

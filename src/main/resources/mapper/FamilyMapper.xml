@@ -2,7 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<mapper namespace="com.eardream.domain.familes.mapper.FamilyMapper">
+<mapper namespace="com.eardream.domain.families.mapper.FamilyMapper">
 
 	<sql id="familyColumns">
 		id,  family_name, family_profile_image_url, monthly_deadline, invite_code, status, created_at, updated_at, user_id
@@ -46,6 +46,80 @@
 		FROM families
 		ORDER BY created_at DESC
 		OFFSET #{offset} ROWS FETCH NEXT #{limit} ROWS ONLY
+	</select>
+
+	<!-- Members for a family (join with users) -->
+	<select id="findMembersByFamilyId" parameterType="long" resultType="com.eardream.domain.families.dto.FamilyMemberDto">
+		SELECT fm.id,
+		       fm.user_id as userId,
+		       u.name,
+		       u.profile_image_url as profileImageUrl,
+		       fm.relationship,
+		       fm.role
+		FROM family_members fm
+		JOIN users u ON u.id = fm.user_id
+		WHERE fm.family_id = #{familyId}
+		ORDER BY fm.joined_at DESC
+	</select>
+
+	<!-- Pending invitations for review by leader -->
+	<select id="findPendingInvitations" parameterType="long" resultType="com.eardream.domain.families.dto.InvitationReviewDto">
+		SELECT i.id as invitationId,
+		       i.invited_user_id as userId,
+		       u.name,
+		       u.profile_image_url as profileImageUrl,
+		       i.created_at as requestedAt
+		FROM invitations i
+		LEFT JOIN users u ON u.id = i.invited_user_id
+		WHERE i.family_id = #{familyId}
+		  AND i.status = 'PENDING'
+		ORDER BY i.created_at DESC
+	</select>
+
+	<update id="approveInvitation">
+		UPDATE invitations SET status = 'ACCEPTED', accepted_at = SYSTIMESTAMP WHERE id = #{invitationId}
+	</update>
+
+	<update id="rejectInvitation">
+		UPDATE invitations SET status = 'REJECTED' WHERE id = #{invitationId}
+	</update>
+
+	<insert id="insertInvitation" parameterType="com.eardream.domain.families.entity.Invitation" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		INSERT INTO invitations (
+			family_id, invite_code, invited_user_id, status, expires_at, created_at
+		) VALUES (
+			#{familyId}, #{inviteCode}, #{invitedUserId}, #{status}, #{expiresAt,jdbcType=TIMESTAMP}, SYSTIMESTAMP
+		)
+	</insert>
+
+	<insert id="insertFamilyMember">
+		INSERT INTO family_members (
+			family_id, user_id, relationship, role, joined_at
+		) VALUES (
+			#{familyId}, #{userId}, #{relationship}, #{role}, SYSTIMESTAMP
+		)
+	</insert>
+
+	<select id="findInvitationById" parameterType="long" resultType="com.eardream.domain.families.entity.Invitation">
+		SELECT id, family_id as familyId, invite_code as inviteCode, invited_user_id as invitedUserId,
+		       status, expires_at as expiresAt, created_at as createdAt, accepted_at as acceptedAt
+		FROM invitations
+		WHERE id = #{invitationId}
+	</select>
+
+	<update id="updateFamilyInviteCode">
+		UPDATE families SET invite_code = #{inviteCode}, updated_at = SYSTIMESTAMP WHERE id = #{familyId}
+	</update>
+
+	<delete id="deleteFamilyMember">
+		DELETE FROM family_members WHERE family_id = #{familyId} AND user_id = #{userId}
+	</delete>
+
+	<select id="isLeader" resultType="int">
+		SELECT COUNT(*) FROM family_members
+		WHERE family_id = #{familyId}
+		  AND user_id = #{userId}
+		  AND role = 'LEADER'
 	</select>
 
 	<select id="countAll" resultType="int">

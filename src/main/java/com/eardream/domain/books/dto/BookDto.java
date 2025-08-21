@@ -1,4 +1,4 @@
-package com.eardream.domain.posts.dto;
+package com.eardream.domain.books.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
@@ -7,33 +7,22 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostDto {
+public class BookDto {
 	private Long id;
 	private Long familyId;
-	private Long userId;
-	private String title;
-	private String content;
-	private String postMonth;
-
+	private String name;
+	private String pdfUrl;
+	private String imageUrl;
 	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	private LocalDateTime createdAt;
-
 	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	private LocalDateTime updatedAt;
-
-	private List<PostImageDto> images;
 }
-
-
-
-
-
 
 
 

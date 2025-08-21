@@ -1,4 +1,4 @@
-package com.eardream.domain.posts.entity;
+package com.eardream.domain.books.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,22 +11,15 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Post {
-
+public class Book {
 	private Long id;
 	private Long familyId;
-	private Long userId;
-	private String title;
-	private String content;
-	private String postMonth; // YYYY-MM
+	private String name;
+	private String pdfUrl;
+	private String imageUrl;
 	private LocalDateTime createdAt;
 	private LocalDateTime updatedAt;
 }
-
-
-
-
-
 
 
 

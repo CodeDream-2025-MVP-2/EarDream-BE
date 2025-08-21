@@ -9,16 +9,10 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostImageDto {
-	private Long id;
-	private String imageUrl;
-	private Integer imageOrder;
+public class UpdatePostRequest {
+    private String title;
+    private String content;
+    private java.util.List<PostImageDto> images; // 전체 교체
 }
-
-
-
-
-
-
 
 

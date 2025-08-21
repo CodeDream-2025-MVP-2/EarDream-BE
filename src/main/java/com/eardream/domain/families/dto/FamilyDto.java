@@ -1,4 +1,4 @@
-package com.eardream.domain.posts.dto;
+package com.eardream.domain.families.dto;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import lombok.AllArgsConstructor;
@@ -7,32 +7,26 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostDto {
-	private Long id;
+public class FamilyDto {
+
 	private Long familyId;
-	private Long userId;
-	private String title;
-	private String content;
-	private String postMonth;
+	private String familyName;
+	private String familyProfileImageUrl;
+	private Integer monthlyDeadline;
+	private String inviteCode;
+	private String status;
 
 	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	private LocalDateTime createdAt;
 
 	@JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
 	private LocalDateTime updatedAt;
-
-	private List<PostImageDto> images;
 }
-
-
-
-
 
 
 

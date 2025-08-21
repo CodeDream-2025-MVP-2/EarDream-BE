@@ -2,6 +2,7 @@ package com.eardream.domain.posts.controller;
 
 import com.eardream.domain.posts.dto.PostDto;
 import com.eardream.domain.posts.dto.PostImageDto;
+import com.eardream.domain.posts.dto.UpdatePostRequest;
 import com.eardream.domain.posts.service.PostService;
 import com.eardream.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -77,6 +78,44 @@ public class PostsController {
 	public ResponseEntity<ApiResponse<PostDto>> getPost(@PathVariable("id") Long id) {
 		PostDto post = postService.getPost(id);
 		return ResponseEntity.ok(ApiResponse.success(post));
+	}
+
+	@PatchMapping(value = "/posts/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	@Operation(summary = "소식 수정", description = "제목/내용 및 이미지를 multipart로 수정(이미지 전체 교체)")
+	public ResponseEntity<ApiResponse<PostDto>> updatePost(
+			@PathVariable("id") Long id,
+			@RequestParam(value = "title", required = false) String title,
+			@RequestParam(value = "content", required = false) String content,
+			@RequestPart(value = "images", required = false) java.util.List<MultipartFile> imageFiles
+	) throws Exception {
+		PostDto updated;
+		if (imageFiles != null) {
+			java.util.List<PostImageDto> images = new java.util.ArrayList<>();
+			for (int i = 0; i < imageFiles.size(); i++) {
+				MultipartFile file = imageFiles.get(i);
+				if (file == null || file.isEmpty()) continue;
+				if (!FileUtils.isValidFileSize(file)) {
+					return ResponseEntity.badRequest().body(ApiResponse.error("FILE_TOO_LARGE", "이미지 파일이 너무 큽니다"));
+				}
+				if (!FileUtils.isImageFile(file.getOriginalFilename())) {
+					return ResponseEntity.badRequest().body(ApiResponse.error("INVALID_TYPE", "이미지 파일만 허용됩니다"));
+				}
+				String relative = FileUtils.saveFile(file, uploadPath, "images");
+				String urlPath = "/uploads/" + StringUtils.trimLeadingCharacter(relative.replace("\\", "/"), '/');
+				images.add(PostImageDto.builder().imageUrl(urlPath).imageOrder(i + 1).build());
+			}
+			updated = postService.updatePostWithImages(id, title, content, images);
+		} else {
+			updated = postService.updatePost(id, title, content);
+		}
+		return ResponseEntity.ok(ApiResponse.success(updated, "소식이 수정되었습니다"));
+	}
+
+	@DeleteMapping("/posts/{id}")
+	@Operation(summary = "소식 삭제", description = "소식을 삭제합니다.")
+	public ResponseEntity<ApiResponse<Void>> deletePost(@PathVariable("id") Long id) {
+		postService.deletePost(id);
+		return ResponseEntity.ok(ApiResponse.success(null, "소식이 삭제되었습니다"));
 	}
 }
 

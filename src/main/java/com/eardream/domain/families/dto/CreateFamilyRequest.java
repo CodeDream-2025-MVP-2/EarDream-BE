@@ -1,4 +1,4 @@
-package com.eardream.domain.familes.dto;
+package com.eardream.domain.families.dto;
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;

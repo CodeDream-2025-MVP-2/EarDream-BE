@@ -1,4 +1,4 @@
-package com.eardream.domain.posts.entity;
+package com.eardream.domain.families.entity;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,20 +11,15 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Post {
+public class FamilyMember {
 
 	private Long id;
 	private Long familyId;
 	private Long userId;
-	private String title;
-	private String content;
-	private String postMonth; // YYYY-MM
-	private LocalDateTime createdAt;
-	private LocalDateTime updatedAt;
+	private String relationship;
+	private String role; // LEADER, MEMBER
+	private LocalDateTime joinedAt;
 }
-
-
-
 
 
 

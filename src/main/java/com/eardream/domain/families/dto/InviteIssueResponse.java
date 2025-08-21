@@ -1,4 +1,4 @@
-package com.eardream.domain.posts.dto;
+package com.eardream.domain.families.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -9,14 +9,11 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PostImageDto {
-	private Long id;
-	private String imageUrl;
-	private Integer imageOrder;
+public class InviteIssueResponse {
+	private Long familyId;
+	private String familyName;
+	private String inviteCode; // 6 chars
 }
-
-
-
 
 
 
