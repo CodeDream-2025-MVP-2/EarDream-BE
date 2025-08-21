@@ -16,20 +16,12 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/auth")
-@CrossOrigin(origins = {"http://localhost:3000", "https://eardream.com"})
+@CrossOrigin(origins = {"http://localhost:3000"})
 @RequiredArgsConstructor
 public class AuthController {
     
     private final KakaoAuthService kakaoAuthService;
     
-    /**
-     * 카카오 로그인 시작 - 카카오 인증 서버로 리다이렉트
-     */
-    @GetMapping("/kakao")
-    public ResponseEntity<ApiResponse<String>> kakaoLogin() {
-        String kakaoAuthUrl = kakaoAuthService.getKakaoAuthUrl();
-        return ResponseEntity.ok(ApiResponse.success(kakaoAuthUrl, "카카오 로그인 URL"));
-    }
     /**
      * 카카오 콜백 처리 - 인증 코드를 받아 JWT 토큰 발급
      */
@@ -47,7 +39,7 @@ public class AuthController {
     /**
      * JWT 토큰 갱신
      */
-    @PostMapping("/refresh")
+    @PostMapping("/kakao/refresh")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@RequestHeader("Authorization") String authorization) {
         try {
             String token = authorization.replace("Bearer ", "");

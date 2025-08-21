@@ -27,7 +27,7 @@
 - 정기 마감일 기반 리셋
 
 ### 구독 관리
-- 정기 결제 (PG/카카오페이)
+- 정기 결제 (PG/이니시스)
 - 구독 상태 확인
 - 결제 수단 관리
 
@@ -44,7 +44,6 @@
 - **Database**: Oracle Database 19c (Oracle Cloud)
 - **ORM**: MyBatis 3.0.5
 - **Authentication**: Kakao OAuth + JWT
-- **API Doc**: Swagger
 
 ### Infrastructure
 - **Cloud**: AWS EC2
@@ -69,7 +68,6 @@ src/main/java/com/eardream/
 │   ├── config/                     # 설정 클래스
 │   │   ├── SecurityConfig.java    # 보안 설정
 │   │   ├── MybatisConfig.java     # MyBatis 설정
-│   │   ├── SwaggerConfig.java     # API 문서 설정
 │   │   └── WebConfig.java         # Web MVC 설정
 │   ├── exception/                  # 예외 처리
 │   │   ├── GlobalExceptionHandler.java
@@ -89,9 +87,9 @@ src/main/java/com/eardream/
     │   └── mapper/
     ├── user/                       # 사용자 도메인
     ├── groups/                     # 가족 그룹 도메인
-    ├── posts/                       # 소식 도메인
     ├── subscription/               # 구독 도메인
     ├── publication/                # 소식지 도메인
+    ├── order/                      # 주문 도메인
     └── payment/                    # 결제 PG
 ```
 
@@ -116,9 +114,6 @@ src/main/java/com/eardream/
 - senior_high` 서비스 사용
 
 ## 📖 API 문서
-
-### Swagger UI
-개발 서버 실행 후: http://localhost:8080/swagger-ui.html
 
 ### 주요 API 엔드포인트
 https://docs.google.com/spreadsheets/d/1_ONnZXwlRquhWwVsUWkuyyT7x76sdlDYdFeXBf_eD1E/edit?usp=sharing

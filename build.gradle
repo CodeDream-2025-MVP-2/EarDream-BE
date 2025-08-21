@@ -1,5 +1,6 @@
 plugins {
 	id 'java'
+	id 'application'
 	id 'org.springframework.boot' version '3.5.4'
 	id 'io.spring.dependency-management' version '1.1.7'
 	// id 'checkstyle' // 일시적으로 비활성화 (설정 파일 필요)
@@ -13,6 +14,11 @@ java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(17)
 	}
+}
+
+// 메인 클래스 명시적 지정
+application {
+	mainClass = 'com.eardream.EarDreamApplication'
 }
 
 configurations {
@@ -51,10 +57,6 @@ dependencies {
 	implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
 	implementation 'io.jsonwebtoken:jjwt-impl:0.12.6'
 	implementation 'io.jsonwebtoken:jjwt-jackson:0.12.6'
-	
-	// API Documentation (Swagger)
-	implementation 'io.springfox:springfox-boot-starter:3.0.0'
-	implementation 'io.springfox:springfox-swagger-ui:3.0.0'
 	
 	// Payment Integration (PG사/카카오페이)
 	implementation 'org.apache.httpcomponents:httpclient:4.5.14'

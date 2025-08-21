@@ -40,16 +40,12 @@ public class SecurityConfig {
             // 요청 권한 설정
             .authorizeHttpRequests(auth -> auth
                 // 인증 없이 접근 가능한 경로
-                .requestMatchers("/api/v1/auth/**").permitAll()        // 인증 관련
+                .requestMatchers("/auth/**").permitAll()        // 인증 관련
                 .requestMatchers("/health", "/", "/actuator/**").permitAll()  // Health Check & Actuator
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll() // Swagger
-                
+
                 // 가족 리더 권한 필요
-                .requestMatchers("/api/v1/families/{familyId}/members/{memberId}").hasRole("FAMILY_LEADER")
-                .requestMatchers("/api/v1/subscriptions/**").hasRole("FAMILY_LEADER")
-                
-                // 인증 필요한 모든 API
-                .requestMatchers("/api/v1/**").authenticated()
+                .requestMatchers("/families/{familyId}/members/{memberId}").hasRole("FAMILY_LEADER")
+                .requestMatchers("/subscriptions/**").hasRole("FAMILY_LEADER")
                 
                 // 기타 모든 요청 허용
                 .anyRequest().permitAll()
