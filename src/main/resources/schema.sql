@@ -24,13 +24,15 @@ CREATE TABLE users (
 -- ⏳ Phase 2: 가족 그룹 관리 테이블 (미구현 - Phase 2에서 개발 예정)
 CREATE TABLE families (
                           id                NUMBER GENERATED AS IDENTITY PRIMARY KEY,
+                          user_id           NUMBER NOT NULL,
                           family_name       VARCHAR2(100) NOT NULL,
                           family_profile_image_url VARCHAR2(500),
                           monthly_deadline  NUMBER(1) CHECK (monthly_deadline IN (2, 4)),
                           invite_code       VARCHAR2(10) UNIQUE NOT NULL,
                           status            VARCHAR2(20) DEFAULT 'ACTIVE',
                           created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                          updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                          updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                          CONSTRAINT fk_families_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
 -- ⏳ Phase 2: 가족 구성원 관리 테이블 (미구현)
@@ -50,7 +52,8 @@ CREATE TABLE posts (
                        id                NUMBER GENERATED AS IDENTITY PRIMARY KEY,
                        family_id         NUMBER NOT NULL,
                        user_id           NUMBER NOT NULL,
-                       content           VARCHAR2(100),
+                       title             VARCHAR2(200) NOT NULL,
+                       content           VARCHAR2(500),
                        post_month        VARCHAR2(7) NOT NULL,
                        created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                        updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -62,6 +65,7 @@ CREATE TABLE post_images (
                              id                NUMBER GENERATED AS IDENTITY PRIMARY KEY,
                              post_id           NUMBER NOT NULL,
                              image_url         VARCHAR2(500) NOT NULL,
+                             description       VARCHAR2(200),
                              image_order       NUMBER(1) CHECK (image_order BETWEEN 1 AND 4),
                              created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                              CONSTRAINT fk_post_images_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
@@ -162,6 +166,7 @@ COMMENT ON COLUMN users.updated_at IS '최종 수정일시';
 
 -- families
 COMMENT ON COLUMN families.id IS '가족 그룹 내부 고유 ID (대체키, 자동증가)';
+COMMENT ON COLUMN families.user_id IS '가족 생성자 사용자 ID';
 COMMENT ON COLUMN families.family_name IS '가족 그룹 이름';
 COMMENT ON COLUMN families.family_profile_image_url IS '가족 그룹 프로필 이미지 로컬 저장 경로';
 COMMENT ON COLUMN families.monthly_deadline IS '월간 소식지 마감 주차 (2=둘째주, 4=넷째주)';

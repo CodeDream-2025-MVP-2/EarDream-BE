@@ -83,10 +83,6 @@ src/main/java/com/eardream/
 │       └── FileUtils.java         # 파일 관련 유틸
 └── domain/                         # 도메인별 패키지
     ├── auth/                       # 인증/인가
-    │   ├── controller/
-    │   ├── service/
-    │   ├── dto/
-    │   └── mapper/
     ├── user/                       # 사용자 도메인
     ├── groups/                     # 가족 그룹 도메인
     ├── posts/                       # 소식 도메인
@@ -97,28 +93,42 @@ src/main/java/com/eardream/
 
 ## 🚀 개발 환경 설정
 
-### 환경 변수 설정
-.env 파일
+### 환경 변수 설정 (.env)
+프로젝트 루트에 `.env` 파일을 생성하고 아래 예시를 참고해 값을 채워주세요.
+
+```
+SPRING_PROFILES_ACTIVE=dev
+
+# Oracle
+ORACLE_TNS_ADMIN=/path/to/wallet
+DB_USERNAME=your_db_username
+DB_PASSWORD=your_db_password
+
+# JWT (32바이트 이상)
+JWT_SECRET_KEY=change-me-very-long-secret-key-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ
+
+# Kakao OAuth
+KAKAO_CLIENT_ID=your_kakao_client_id
+KAKAO_CLIENT_SECRET=your_kakao_client_secret
+KAKAO_REDIRECT_URI=http://localhost:3000/auth/kakao/callback
+```
+
+이 프로젝트는 `spring-dotenv`를 사용하여 `.env` 값을 자동으로 로드합니다.
 
 ### 프로젝트 실행
 ```bash
-# 의존성 설치
-./mvnw clean install
-
-# 개발 서버 실행
-./mvnw spring-boot:run
-
-# 프로덕션 빌드
-./mvnw clean package
+# Gradle 사용
+./gradlew clean build -x test
+./gradlew bootRun
 ```
 
 ### 데이터베이스 설정
-- senior_high` 서비스 사용
+- `senior_high` 서비스 사용
 
 ## 📖 API 문서
 
 ### Swagger UI
-개발 서버 실행 후: http://localhost:8080/swagger-ui.html
+개발 서버 실행 후: http://localhost:8080/swagger-ui/index.html
 
 ### 주요 API 엔드포인트
 https://docs.google.com/spreadsheets/d/1_ONnZXwlRquhWwVsUWkuyyT7x76sdlDYdFeXBf_eD1E/edit?usp=sharing

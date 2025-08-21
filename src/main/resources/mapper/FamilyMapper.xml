@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.eardream.domain.familes.mapper.FamilyMapper">
+
+	<sql id="familyColumns">
+		id,  family_name, family_profile_image_url, monthly_deadline, invite_code, status, created_at, updated_at, user_id
+	</sql>
+
+	<insert id="insertFamily" parameterType="Family" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		INSERT INTO families (
+			family_name, family_profile_image_url, monthly_deadline, invite_code, status, created_at, updated_at, user_id
+		) VALUES (
+			#{familyName},
+			#{familyProfileImageUrl},
+			#{monthlyDeadline},
+			#{inviteCode},
+			#{status},
+			#{createdAt},
+			#{updatedAt},
+			#{userId}
+		)
+	</insert>
+
+	<select id="findById" parameterType="long" resultType="Family">
+		SELECT <include refid="familyColumns"/>
+		FROM families
+		WHERE id = #{id}
+	</select>
+
+	<select id="findByUserId" parameterType="long" resultType="Family">
+		SELECT <include refid="familyColumns"/>
+		FROM families
+		WHERE user_id = #{userId}
+	</select>
+
+	<select id="findByInviteCode" parameterType="string" resultType="Family">
+		SELECT <include refid="familyColumns"/>
+		FROM families
+		WHERE invite_code = #{inviteCode}
+	</select>
+
+	<select id="findAll" resultType="Family">
+		SELECT <include refid="familyColumns"/>
+		FROM families
+		ORDER BY created_at DESC
+		OFFSET #{offset} ROWS FETCH NEXT #{limit} ROWS ONLY
+	</select>
+
+	<select id="countAll" resultType="int">
+		SELECT COUNT(*) FROM families
+	</select>
+
+</mapper>
+
+
+
+
