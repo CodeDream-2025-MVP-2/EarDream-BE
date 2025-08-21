@@ -63,7 +63,7 @@ kakao:
 # 파일 업로드 설정 (EC2 로컬 파일 시스템)
 file:
   upload:
-    path: /home/ubuntu/eardream/uploads
+    path: ./uploads
     max-size: 10MB
 
 # Actuator 설정 (모니터링 및 헬스체크)
