@@ -157,7 +157,7 @@ public class FamilyService {
 				.orElseThrow(() -> new IllegalArgumentException("유효하지 않은 초대코드입니다"));
 
 		// 사용자 조회 (카카오 로그인으로 생성된 사용자)
-		UserDto user = userService.getUserById(request.getUserId());
+		UserDto user = userService.getMyProfile(request.getUserId());
 
 		// 초대 생성 (PENDING)
 		Invitation invitation = Invitation.builder()

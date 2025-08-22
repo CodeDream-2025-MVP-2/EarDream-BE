@@ -125,12 +125,9 @@ KAKAO_REDIRECT_URI=http://localhost:3000/auth/kakao/callback
 
 ## 📖 API 문서
 
-<<<<<<< HEAD
 ### Swagger UI
 개발 서버 실행 후: http://localhost:8080/swagger-ui/index.html
 
-=======
->>>>>>> ec92de7231e6b993e41af2a3ad9b09da718c18a3
 ### 주요 API 엔드포인트
 https://docs.google.com/spreadsheets/d/1_ONnZXwlRquhWwVsUWkuyyT7x76sdlDYdFeXBf_eD1E/edit?usp=sharing
 

@@ -3,6 +3,11 @@
 # EarDream AWS EC2 배포 스크립트
 # 사용법: ./deploy.sh [build|deploy|restart|logs]
 
+# .env 파일 로드
+if [ -f ".env" ]; then
+    export $(cat .env | grep -v '^#' | xargs)
+fi
+
 # AWS EC2 설정
 EC2_HOST="${EC2_HOST}"
 EC2_USER="${EC2_USER}"
@@ -143,7 +148,7 @@ restart_app() {
     
     # 포트 확인
     sleep 5
-    if ssh -i "$PEM_KEY" "$EC2_USER@$EC2_HOST" "netstat -tlnp | grep :$APP_PORT"; then
+    if ssh -i "$PEM_KEY" "$EC2_USER@$EC2_HOST" "ss -tlnp | grep :$APP_PORT"; then
         log_success "애플리케이션이 포트 $APP_PORT에서 실행 중입니다"
         log_info "접속 URL: http://$EC2_HOST:$APP_PORT"
     else
@@ -166,7 +171,7 @@ check_status() {
             PID=\$(cat app.pid)
             if ps -p \$PID > /dev/null; then
                 echo '✅ 애플리케이션이 실행 중입니다. PID: '\$PID
-                netstat -tlnp | grep :$APP_PORT || echo '⚠️  포트 $APP_PORT에서 수신 대기하지 않습니다'
+                ss -tlnp | grep :$APP_PORT || echo '⚠️  포트 $APP_PORT에서 수신 대기하지 않습니다'
             else
                 echo '❌ PID 파일은 있지만 프로세스가 실행되지 않습니다'
             fi

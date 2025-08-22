@@ -4,20 +4,18 @@ import com.eardream.domain.user.dto.CreateUserRequest;
 import com.eardream.domain.user.dto.UpdateUserRequest;
 import com.eardream.domain.user.dto.UserDto;
 import com.eardream.domain.user.entity.User;
-import com.eardream.domain.user.entity.UserType;
 import com.eardream.domain.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import com.eardream.global.exception.ResourceNotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
-
 /**
- * User 도메인 비즈니스 로직 서비스
+ * User 서비스 (API 명세서 기반)
+ * 카카오 OAuth 기반 사용자 관리
  */
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -26,24 +24,24 @@ public class UserService {
     private final UserMapper userMapper;
     
     /**
-     * 사용자 생성
+     * 카카오 OAuth 회원가입 또는 프로필 완성
      */
     @Transactional
     public UserDto createUser(CreateUserRequest request) {
-        // 중복 검증
-        if (request.getKakaoId() != null && userMapper.existsByKakaoId(request.getKakaoId()) > 0) {
-            throw new IllegalArgumentException("이미 존재하는 Kakao ID입니다: " + request.getKakaoId());
-        }
+        log.info("사용자 생성 요청 - kakaoId: {}, name: {}", request.getKakaoId(), request.getName());
         
-        if (request.getPhoneNumber() != null && userMapper.existsByPhoneNumber(request.getPhoneNumber()) > 0) {
-            throw new IllegalArgumentException("이미 존재하는 전화번호입니다: " + request.getPhoneNumber());
+        // 카카오 ID 중복 체크
+        if (userMapper.existsByKakaoId(request.getKakaoId()) > 0) {
+            throw new IllegalArgumentException("이미 존재하는 Kakao ID입니다");
         }
-        
-        // 비즈니스 로직 검증
-        // userType 기반 검증 제거
         
         // User 엔티티 생성
-        User user = createUserEntity(request);
+        User user = User.createFromKakao(request.getKakaoId(), request.getName());
+        if (request.getPhoneNumber() != null || request.getProfileImageUrl() != null ||
+            request.getBirthDate() != null || request.getAddress() != null) {
+            user.updateProfile(request.getName(), request.getPhoneNumber(),
+                             request.getProfileImageUrl(), request.getBirthDate(), request.getAddress());
+        }
         
         // 저장
         int result = userMapper.insertUser(user);
@@ -51,242 +49,83 @@ public class UserService {
             throw new RuntimeException("사용자 생성에 실패했습니다");
         }
         
-        return convertToDto(user);
+        log.info("사용자 생성 완료 - userId: {}", user.getId());
+        return UserDto.from(user);
     }
     
     /**
-     * ID로 사용자 조회
+     * 내 프로필 조회 (GET /users/me)
      */
-    public UserDto getUserById(Long id) {
-        User user = userMapper.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("해당하는 유저가 존재하지 않습니다: " + id));
-        return convertToDto(user);
+    public UserDto getMyProfile(Long userId) {
+        User user = userMapper.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+        return UserDto.from(user);
     }
     
     /**
-     * Kakao ID로 사용자 조회
+     * 카카오 ID로 사용자 조회 (로그인 시 사용)
      */
     public UserDto getUserByKakaoId(String kakaoId) {
         User user = userMapper.findByKakaoId(kakaoId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + kakaoId));
-        return convertToDto(user);
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+        return UserDto.from(user);
     }
     
     /**
-     * 전화번호로 사용자 조회
-     */
-    public UserDto getUserByPhoneNumber(String phoneNumber) {
-        User user = userMapper.findByPhoneNumber(phoneNumber)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + phoneNumber));
-        return convertToDto(user);
-    }
-    
-    /**
-     * 사용자 유형별 목록 조회
-     */
-    // Removed getUsersByType
-    
-    /**
-     * 가족 리더 목록 조회
-     */
-    public List<UserDto> getFamilyLeaders() {
-        List<User> leaders = userMapper.findFamilyLeaders();
-        return leaders.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
-    
-    /**
-     * 소식지 수신자 목록 조회
-     */
-    public List<UserDto> getNewsletterReceivers() {
-        List<User> receivers = userMapper.findNewsletterReceivers();
-        return receivers.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
-    
-    /**
-     * 사용자 정보 수정
-     */
-    @Transactional
-    public UserDto updateUser(Long id, UpdateUserRequest request) {
-        if (!request.hasChanges()) {
-            throw new IllegalArgumentException("수정할 정보가 없습니다");
-        }
-        
-        User existingUser = userMapper.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + id));
-        
-        // 전화번호 중복 확인 (본인 제외)
-        if (request.getPhoneNumber() != null && 
-            !request.getPhoneNumber().equals(existingUser.getPhoneNumber()) &&
-            userMapper.existsByPhoneNumber(request.getPhoneNumber()) > 0) {
-            throw new IllegalArgumentException("이미 존재하는 전화번호입니다: " + request.getPhoneNumber());
-        }
-        
-        // 수정할 정보 적용
-        applyUpdateRequest(existingUser, request);
-        
-        // 업데이트
-        int result = userMapper.updateUser(existingUser);
-        if (result == 0) {
-            throw new RuntimeException("사용자 정보 수정에 실패했습니다");
-        }
-        
-        return convertToDto(existingUser);
-    }
-    
-    /**
-     * 사용자 리더 권한 변경
-     */
-    @Transactional
-    public void updateLeaderStatus(Long id, Boolean isLeader) {
-        if (!userMapper.findById(id).isPresent()) {
-            throw new IllegalArgumentException("사용자를 찾을 수 없습니다: " + id);
-        }
-        
-        int result = userMapper.updateLeaderStatus(id, isLeader);
-        if (result == 0) {
-            throw new RuntimeException("리더 권한 변경에 실패했습니다");
-        }
-    }
-    
-    /**
-     * 사용자 수신자 상태 변경
-     */
-    @Transactional
-    public void updateReceiverStatus(Long id, Boolean isReceiver) {
-        if (!userMapper.findById(id).isPresent()) {
-            throw new IllegalArgumentException("사용자를 찾을 수 없습니다: " + id);
-        }
-        
-        int result = userMapper.updateReceiverStatus(id, isReceiver);
-        if (result == 0) {
-            throw new RuntimeException("수신자 상태 변경에 실패했습니다");
-        }
-    }
-    
-    /**
-     * 사용자 삭제
-     */
-    @Transactional
-    public void deleteUser(Long id) {
-        if (!userMapper.findById(id).isPresent()) {
-            throw new IllegalArgumentException("사용자를 찾을 수 없습니다: " + id);
-        }
-        
-        int result = userMapper.deleteById(id);
-        if (result == 0) {
-            throw new RuntimeException("사용자 삭제에 실패했습니다");
-        }
-    }
-    
-    /**
-     * 사용자 존재 여부 확인 - Kakao ID
+     * 카카오 ID 존재 여부 확인
      */
     public boolean existsByKakaoId(String kakaoId) {
         return userMapper.existsByKakaoId(kakaoId) > 0;
     }
     
     /**
-     * 사용자 존재 여부 확인 - 전화번호
+     * 내 프로필 수정 (PATCH /users/me)
      */
-    public boolean existsByPhoneNumber(String phoneNumber) {
-        return userMapper.existsByPhoneNumber(phoneNumber) > 0;
-    }
-    
-    /**
-     * 전체 사용자 수 조회
-     */
-    public int getTotalUserCount() {
-        return userMapper.countUsers();
-    }
-    
-    /**
-     * 사용자 유형별 수 조회
-     */
-    // Removed getUserCountByType
-    
-    /**
-     * 최근 생성된 사용자 목록 조회
-     */
-    public List<UserDto> getRecentUsers(int limit) {
-        List<User> users = userMapper.findRecentUsers(limit);
-        return users.stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
-    }
-    
-    // ===== Private Helper Methods =====
-    
-    /**
-     * CreateUserRequest를 User 엔티티로 변환
-     */
-    private User createUserEntity(CreateUserRequest request) {
-        User user;
-        
-        if (UserType.ACTIVE_USER.equals(request.getUserType())) {
-            user = User.createActiveUser(request.getKakaoId(), request.getName(), request.getPhoneNumber());
-        } else {
-            user = User.createPendingRecipient(request.getName(), request.getPhoneNumber(), request.getAddress());
+    @Transactional
+    public UserDto updateMyProfile(Long userId, UpdateUserRequest request) {
+        log.info("사용자 프로필 수정 요청 - userId: {}", userId);
+
+        if (!request.hasChanges()) {
+            throw new IllegalArgumentException("수정할 정보가 없습니다");
         }
         
-        // 추가 정보 설정
-        user.setProfileImageUrl(request.getProfileImageUrl());
-        user.setBirthDate(request.getBirthDate());
-        user.setFamilyRole(request.getFamilyRole());
+        User user = userMapper.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
         
-        return user;
+        // 프로필 정보 업데이트
+        user.updateProfile(
+            request.getName() != null ? request.getName() : user.getName(),
+            request.getPhoneNumber() != null ? request.getPhoneNumber() : user.getPhoneNumber(),
+            request.getProfileImageUrl() != null ? request.getProfileImageUrl() : user.getProfileImageUrl(),
+            request.getBirthDate() != null ? request.getBirthDate() : user.getBirthDate(),
+            request.getAddress() != null ? request.getAddress() : user.getAddress()
+        );
+        
+        // 데이터베이스 업데이트
+        int result = userMapper.updateUser(user);
+        if (result == 0) {
+            throw new RuntimeException("사용자 정보 수정에 실패했습니다");
+        }
+        
+        log.info("사용자 프로필 수정 완료 - userId: {}", userId);
+        return UserDto.from(user);
     }
     
     /**
-     * UpdateUserRequest를 기존 User 엔티티에 적용
+     * 계정 삭제 (DELETE /users/delete)
      */
-    private void applyUpdateRequest(User user, UpdateUserRequest request) {
-        if (request.getName() != null) {
-            user.setName(request.getName());
-        }
-        if (request.getPhoneNumber() != null) {
-            user.setPhoneNumber(request.getPhoneNumber());
-        }
-        if (request.getProfileImageUrl() != null) {
-            user.setProfileImageUrl(request.getProfileImageUrl());
-        }
-        if (request.getBirthDate() != null) {
-            user.setBirthDate(request.getBirthDate());
-        }
-        if (request.getAddress() != null) {
-            user.setAddress(request.getAddress());
-        }
-        if (request.getFamilyRole() != null) {
-            user.setFamilyRole(request.getFamilyRole());
-        }
-        if (request.getIsReceiver() != null) {
-            user.setIsReceiver(request.getIsReceiver());
+    @Transactional
+    public void deleteAccount(Long userId) {
+        log.info("계정 삭제 요청 - userId: {}", userId);
+        
+        User user = userMapper.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다"));
+
+        int result = userMapper.deleteById(userId);
+        if (result == 0) {
+            throw new RuntimeException("계정 삭제에 실패했습니다");
         }
         
-        user.setUpdatedAt(LocalDateTime.now());
-    }
-    
-    /**
-     * User 엔티티를 UserDto로 변환
-     */
-    private UserDto convertToDto(User user) {
-        return UserDto.builder()
-                .userId(user.getId())
-                .kakaoId(user.getKakaoId())
-                .name(user.getName())
-                .phoneNumber(user.getPhoneNumber())
-                .profileImageUrl(user.getProfileImageUrl())
-                .birthDate(user.getBirthDate())
-                .address(user.getAddress())
-                .userType(user.getUserType())
-                .familyRole(user.getFamilyRole())
-                .isLeader(user.getIsLeader())
-                .isReceiver(user.getIsReceiver())
-                .createdAt(user.getCreatedAt())
-                .updatedAt(user.getUpdatedAt())
-                .build();
+        log.info("계정 삭제 완료 - userId: {}", userId);
     }
 }

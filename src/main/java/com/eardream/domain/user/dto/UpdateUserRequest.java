@@ -11,7 +11,7 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 /**
- * 사용자 정보 수정 요청 DTO
+ * 사용자 정보 수정 요청 DTO (PATCH /users/me)
  */
 @Data
 @Builder
@@ -33,16 +33,11 @@ public class UpdateUserRequest {
     @Size(max = 500, message = "주소는 500자를 초과할 수 없습니다")
     private String address;
     
-    @Size(max = 50, message = "가족 역할은 50자를 초과할 수 없습니다")
-    private String familyRole;
-    
-    private Boolean isReceiver;
-    
     /**
-     * 변경사항이 있는지 확인하는 메서드
+     * 변경사항이 있는지 확인
      */
     public boolean hasChanges() {
         return name != null || phoneNumber != null || profileImageUrl != null || 
-               birthDate != null || address != null || familyRole != null || isReceiver != null;
+               birthDate != null || address != null;
     }
 }

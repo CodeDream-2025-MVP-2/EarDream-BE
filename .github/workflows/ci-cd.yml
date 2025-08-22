@@ -2,13 +2,13 @@ name: EarDream CI/CD Pipeline
 
 on:
   push:
-    branches: [ master, main, develop ]
+    branches: [ master, main, develop, ci-cd-test ]
   pull_request:
     branches: [ master, main ]
   workflow_dispatch:
 
 env:
-  JAVA_VERSION: '21'
+  JAVA_VERSION: '17'
   GRADLE_VERSION: 'wrapper'
 
 jobs:
@@ -55,7 +55,7 @@ jobs:
     name: Build Application
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci-cd-test' || github.event_name == 'pull_request'
     
     steps:
     - name: Checkout code
@@ -93,7 +93,7 @@ jobs:
         SPRING_PROFILES_ACTIVE: prod
       
     - name: Upload build artifacts
-      if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci-cd-test'
       uses: actions/upload-artifact@v4
       with:
         name: jar-artifact
@@ -104,138 +104,101 @@ jobs:
     name: Deploy to AWS EC2
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci-cd-test'
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         name: jar-artifact
         path: build/libs/
         
-    - name: Deploy to server
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_PRIVATE_KEY }}
-        port: ${{ secrets.EC2_PORT }}
-        script: |
-          # Create application directory if not exists
-          sudo mkdir -p /opt/eardream
-          sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /opt/eardream
-          
-          # Create systemd service file
-          sudo tee /etc/systemd/system/eardream.service > /dev/null <<EOF
-          [Unit]
-          Description=EarDream Spring Boot Application
-          After=network.target
-          
-          [Service]
-          Type=simple
-          User=${{ secrets.EC2_USERNAME }}
-          WorkingDirectory=/opt/eardream
-          
-          # Environment variables
-          EnvironmentFile=/etc/environment
-          Environment="ORACLE_TNS_ADMIN=/opt/oracle/wallet"
-          
-          # Java execution
-          ExecStart=/usr/bin/java -jar \\
-            -Dspring.profiles.active=prod \\
-            -Doracle.net.tns_admin=/opt/oracle/wallet \\
-            -Dfile.upload.path=/opt/eardream/uploads \\
-            /opt/eardream/eardream.jar
-          
-          # Restart policy
-          Restart=on-failure
-          RestartSec=10
-          
-          # Logging
-          StandardOutput=journal
-          StandardError=journal
-          
-          [Install]
-          WantedBy=multi-user.target
-          EOF
-          
-          # Reload systemd
-          sudo systemctl daemon-reload
-          
-          # Stop existing service
-          sudo systemctl stop eardream || echo "Service not running"
-          
-          # Backup current version
-          if [ -f /opt/eardream/eardream.jar ]; then
-            cp /opt/eardream/eardream.jar /opt/eardream/eardream.jar.backup.$(date +%Y%m%d_%H%M%S)
-          fi
-          
-    - name: Copy JAR to server
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_PRIVATE_KEY }}
-        port: ${{ secrets.EC2_PORT }}
-        source: "build/libs/*.jar"
-        target: "/tmp/"
-        strip_components: 2
+    - name: Deploy to EC2
+      run: |
+        # Create SSH key file
+        echo "${{ secrets.EC2_PRIVATE_KEY }}" > private_key.pem
+        chmod 600 private_key.pem
         
-    - name: Start application
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_PRIVATE_KEY }}
-        port: ${{ secrets.EC2_PORT }}
-        script: |
-          # Create Oracle wallet directory if not exists
-          sudo mkdir -p /opt/oracle/wallet
-          sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /opt/oracle/wallet
+        # Test SSH connection first
+        echo "Testing SSH connection..."
+        ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "echo 'SSH connection successful'; whoami; pwd; ls -la /opt"
+        
+        # Create directories on server (single command)
+        echo "Creating directories..."
+        ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "sudo mkdir -p /opt/eardream /opt/oracle/wallet && sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /opt/eardream /opt/oracle/wallet"
+        
+        # Copy JAR file to server
+        echo "Copying JAR file..."
+        scp -i private_key.pem -o StrictHostKeyChecking=no build/libs/*.jar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/opt/eardream/eardream.jar
+        
+        # Test Java availability and ensure Java 17 is installed
+        echo "Testing Java installation..."
+        ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
+          echo '=== Current Java version ==='
+          java -version || echo 'Java not found'
           
-          # Move JAR to application directory (rename from build output)
-          sudo mv /tmp/eardream-backend.jar /opt/eardream/eardream.jar
-          
-          # Set permissions
-          sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /opt/eardream/eardream.jar
-          sudo chmod +x /opt/eardream/eardream.jar
-          
-          # Set environment variables for service
-          sudo tee /etc/environment >> /dev/null <<EOF
-          ORACLE_TNS_ADMIN=/opt/oracle/wallet
-          DB_USERNAME=${{ secrets.DB_USERNAME }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
-          KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
-          KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
-          KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }}
-          SPRING_PROFILES_ACTIVE=prod
-          EOF
-          
-          # Start service
-          sudo systemctl start eardream
-          sudo systemctl enable eardream
-          
-          # Wait for startup
-          sleep 30
-          
-          # Health check
-          if curl -f http://localhost:8080/actuator/health; then
-            echo "✅ Deployment successful - Application is healthy"
+          # Check if Java 17 is installed and available
+          if ! java -version 2>&1 | grep -q 'openjdk version \"17'; then
+            echo '=== Installing Java 17 ==='
+            sudo apt update
+            sudo apt install -y openjdk-17-jdk
+            
+            echo '=== Setting up Java 17 as default ==='
+            sudo update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-17-openjdk-amd64/bin/java 2
+            sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
+            
+            echo '=== Verifying Java 17 installation ==='
+            java -version
           else
-            echo "❌ Deployment failed - Application is not responding"
-            # Rollback to previous version
-            if [ -f /opt/eardream/eardream.jar.backup.* ]; then
-              sudo systemctl stop eardream
-              sudo mv /opt/eardream/eardream.jar.backup.* /opt/eardream/eardream.jar
-              sudo systemctl start eardream
-              echo "🔄 Rolled back to previous version"
-            fi
-            exit 1
+            echo 'Java 17 is already installed and active'
           fi
+        "
+        
+        # Start application with detailed logging
+        echo "Starting application..."
+        ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
+          cd /opt/eardream
+          
+          echo '=== Stopping existing application ==='
+          sudo pkill -f 'java.*eardream' || echo 'No running application found'
+          sleep 3
+          
+          echo '=== Environment check ==='
+          pwd
+          ls -la
+          java -version
+          
+          echo '=== Application startup ==='
+          # Test jar file first
+          java -jar eardream.jar --help || echo 'JAR help failed'
+          
+          # Start with environment variables
+          export DB_USERNAME='${{ secrets.DB_USERNAME }}'
+          export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
+          export JWT_SECRET_KEY='${{ secrets.JWT_SECRET_KEY }}'
+          export KAKAO_CLIENT_ID='${{ secrets.KAKAO_CLIENT_ID }}'
+          export KAKAO_CLIENT_SECRET='${{ secrets.KAKAO_CLIENT_SECRET }}'
+          export KAKAO_REDIRECT_URI='${{ secrets.KAKAO_REDIRECT_URI }}'
+          export ORACLE_TNS_ADMIN='/opt/oracle/wallet'
+          
+          nohup java -jar \
+            -Dspring.profiles.active=prod \
+            -Dserver.port=8080 \
+            -Dlogging.level.com.eardream=DEBUG \
+            eardream.jar > app.log 2>&1 &
+          
+          echo 'Application started with PID:' \$!
+          sleep 5
+          
+          echo '=== Application log (first 50 lines) ==='
+          head -n 50 app.log || echo 'No log file yet'
+          
+          echo '=== Process check ==='
+          ps aux | grep java || echo 'No java processes'
+        "
+        
+        # Clean up
+        rm -f private_key.pem
 
   notify:
     name: Notify Deployment Result
