@@ -2,7 +2,7 @@ name: EarDream CI/CD Pipeline
 
 on:
   push:
-    branches: [ master, main, develop ]
+    branches: [ master, main, develop, ci-cd-test ]
   pull_request:
     branches: [ master, main ]
   workflow_dispatch:
@@ -55,7 +55,7 @@ jobs:
     name: Build Application
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.event_name == 'pull_request'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci-cd-test' || github.event_name == 'pull_request'
     
     steps:
     - name: Checkout code
@@ -93,7 +93,7 @@ jobs:
         SPRING_PROFILES_ACTIVE: prod
       
     - name: Upload build artifacts
-      if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+      if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci-cd-test'
       uses: actions/upload-artifact@v4
       with:
         name: jar-artifact
@@ -104,7 +104,7 @@ jobs:
     name: Deploy to AWS EC2
     runs-on: ubuntu-latest
     needs: build
-    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/ci-cd-test'
     
     steps:
     - name: Download build artifacts
@@ -131,22 +131,70 @@ jobs:
         echo "Copying JAR file..."
         scp -i private_key.pem -o StrictHostKeyChecking=no build/libs/*.jar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/opt/eardream/eardream.jar
         
-        # Test Java availability
+        # Test Java availability and upgrade to Java 21 if needed
         echo "Testing Java installation..."
-        ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "java -version && which java"
+        ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
+          echo '=== Current Java version ==='
+          java -version
+          
+          # Check if Java 21 is already installed
+          if ! java -version 2>&1 | grep -q 'openjdk version \"21'; then
+            echo '=== Installing Java 21 ==='
+            sudo apt update
+            sudo apt install -y openjdk-21-jdk
+            
+            echo '=== Setting up Java 21 as default ==='
+            sudo update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-21-openjdk-amd64/bin/java 1
+            sudo update-alternatives --set java /usr/lib/jvm/java-21-openjdk-amd64/bin/java
+            
+            echo '=== Verifying Java 21 installation ==='
+            java -version
+          else
+            echo 'Java 21 is already installed'
+          fi
+        "
         
-        # Start application (simplified)
+        # Start application with detailed logging
         echo "Starting application..."
         ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
           cd /opt/eardream
+          
+          echo '=== Stopping existing application ==='
           sudo pkill -f 'java.*eardream' || echo 'No running application found'
+          sleep 3
+          
+          echo '=== Environment check ==='
+          pwd
+          ls -la
+          java -version
+          
+          echo '=== Application startup ==='
+          # Test jar file first
+          java -jar eardream.jar --help || echo 'JAR help failed'
+          
+          # Start with environment variables
+          export DB_USERNAME='${{ secrets.DB_USERNAME }}'
+          export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
+          export JWT_SECRET_KEY='${{ secrets.JWT_SECRET_KEY }}'
+          export KAKAO_CLIENT_ID='${{ secrets.KAKAO_CLIENT_ID }}'
+          export KAKAO_CLIENT_SECRET='${{ secrets.KAKAO_CLIENT_SECRET }}'
+          export KAKAO_REDIRECT_URI='${{ secrets.KAKAO_REDIRECT_URI }}'
+          export ORACLE_TNS_ADMIN='/opt/oracle/wallet'
           
           nohup java -jar \
             -Dspring.profiles.active=prod \
             -Dserver.port=8080 \
+            -Dlogging.level.com.eardream=DEBUG \
             eardream.jar > app.log 2>&1 &
           
-          echo 'Application started in background'
+          echo 'Application started with PID:' \$!
+          sleep 5
+          
+          echo '=== Application log (first 50 lines) ==='
+          head -n 50 app.log || echo 'No log file yet'
+          
+          echo '=== Process check ==='
+          ps aux | grep java || echo 'No java processes'
         "
         
         # Clean up
