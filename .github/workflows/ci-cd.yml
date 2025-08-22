@@ -107,135 +107,71 @@ jobs:
     if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main'
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
     - name: Download build artifacts
       uses: actions/download-artifact@v4
       with:
         name: jar-artifact
         path: build/libs/
         
-    - name: Deploy to server
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_PRIVATE_KEY }}
-        port: ${{ secrets.EC2_PORT }}
-        script: |
-          # Create application directory if not exists
-          sudo mkdir -p /opt/eardream
-          sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /opt/eardream
-          
-          # Create systemd service file
-          sudo tee /etc/systemd/system/eardream.service > /dev/null <<EOF
-          [Unit]
-          Description=EarDream Spring Boot Application
-          After=network.target
-          
-          [Service]
-          Type=simple
-          User=${{ secrets.EC2_USERNAME }}
-          WorkingDirectory=/opt/eardream
-          
-          # Environment variables
-          EnvironmentFile=/etc/environment
-          Environment="ORACLE_TNS_ADMIN=/opt/oracle/wallet"
-          
-          # Java execution
-          ExecStart=/usr/bin/java -jar \\
-            -Dspring.profiles.active=prod \\
-            -Doracle.net.tns_admin=/opt/oracle/wallet \\
-            -Dfile.upload.path=/opt/eardream/uploads \\
-            /opt/eardream/eardream.jar
-          
-          # Restart policy
-          Restart=on-failure
-          RestartSec=10
-          
-          # Logging
-          StandardOutput=journal
-          StandardError=journal
-          
-          [Install]
-          WantedBy=multi-user.target
-          EOF
-          
-          # Reload systemd
-          sudo systemctl daemon-reload
-          
-          # Stop existing service
-          sudo systemctl stop eardream || echo "Service not running"
-          
-          # Backup current version
-          if [ -f /opt/eardream/eardream.jar ]; then
-            cp /opt/eardream/eardream.jar /opt/eardream/eardream.jar.backup.$(date +%Y%m%d_%H%M%S)
-          fi
-          
-    - name: Copy JAR to server
-      uses: appleboy/scp-action@v0.1.7
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_PRIVATE_KEY }}
-        port: ${{ secrets.EC2_PORT }}
-        source: "build/libs/*.jar"
-        target: "/tmp/"
-        strip_components: 2
+    - name: Deploy to EC2
+      run: |
+        # Create SSH key file
+        echo "${{ secrets.EC2_PRIVATE_KEY }}" > private_key.pem
+        chmod 600 private_key.pem
         
-    - name: Start application
-      uses: appleboy/ssh-action@v1.0.3
-      with:
-        host: ${{ secrets.EC2_HOST }}
-        username: ${{ secrets.EC2_USERNAME }}
-        key: ${{ secrets.EC2_PRIVATE_KEY }}
-        port: ${{ secrets.EC2_PORT }}
-        script: |
-          # Create Oracle wallet directory if not exists
-          sudo mkdir -p /opt/oracle/wallet
-          sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /opt/oracle/wallet
+        # Create directories on server
+        ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
+          sudo mkdir -p /opt/eardream /opt/oracle/wallet
+          sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /opt/eardream /opt/oracle/wallet
+        "
+        
+        # Stop existing application
+        ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
+          sudo pkill -f 'java.*eardream' || echo 'No running application found'
+        "
+        
+        # Backup current version
+        ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
+          if [ -f /opt/eardream/eardream.jar ]; then
+            cp /opt/eardream/eardream.jar /opt/eardream/eardream.jar.backup.\$(date +%Y%m%d_%H%M%S)
+          fi
+        "
+        
+        # Copy JAR file to server
+        scp -i private_key.pem -o StrictHostKeyChecking=no build/libs/*.jar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/opt/eardream/eardream.jar
+        
+        # Start application
+        ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
+          cd /opt/eardream
+          export ORACLE_TNS_ADMIN=/opt/oracle/wallet
+          export DB_USERNAME='${{ secrets.DB_USERNAME }}'
+          export DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
+          export JWT_SECRET_KEY='${{ secrets.JWT_SECRET_KEY }}'
+          export KAKAO_CLIENT_ID='${{ secrets.KAKAO_CLIENT_ID }}'
+          export KAKAO_CLIENT_SECRET='${{ secrets.KAKAO_CLIENT_SECRET }}'
+          export KAKAO_REDIRECT_URI='${{ secrets.KAKAO_REDIRECT_URI }}'
+          export SPRING_PROFILES_ACTIVE=prod
           
-          # Move JAR to application directory (rename from build output)
-          sudo mv /tmp/eardream-backend.jar /opt/eardream/eardream.jar
-          
-          # Set permissions
-          sudo chown ${{ secrets.EC2_USERNAME }}:${{ secrets.EC2_USERNAME }} /opt/eardream/eardream.jar
-          sudo chmod +x /opt/eardream/eardream.jar
-          
-          # Set environment variables for service
-          sudo tee /etc/environment >> /dev/null <<EOF
-          ORACLE_TNS_ADMIN=/opt/oracle/wallet
-          DB_USERNAME=${{ secrets.DB_USERNAME }}
-          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
-          JWT_SECRET_KEY=${{ secrets.JWT_SECRET_KEY }}
-          KAKAO_CLIENT_ID=${{ secrets.KAKAO_CLIENT_ID }}
-          KAKAO_CLIENT_SECRET=${{ secrets.KAKAO_CLIENT_SECRET }}
-          KAKAO_REDIRECT_URI=${{ secrets.KAKAO_REDIRECT_URI }}
-          SPRING_PROFILES_ACTIVE=prod
-          EOF
-          
-          # Start service
-          sudo systemctl start eardream
-          sudo systemctl enable eardream
+          nohup java -jar \
+            -Dspring.profiles.active=prod \
+            -Doracle.net.tns_admin=/opt/oracle/wallet \
+            -Dfile.upload.path=/opt/eardream/uploads \
+            /opt/eardream/eardream.jar > app.log 2>&1 &
           
           # Wait for startup
           sleep 30
           
           # Health check
           if curl -f http://localhost:8080/actuator/health; then
-            echo "✅ Deployment successful - Application is healthy"
+            echo '✅ Deployment successful - Application is healthy'
           else
-            echo "❌ Deployment failed - Application is not responding"
-            # Rollback to previous version
-            if [ -f /opt/eardream/eardream.jar.backup.* ]; then
-              sudo systemctl stop eardream
-              sudo mv /opt/eardream/eardream.jar.backup.* /opt/eardream/eardream.jar
-              sudo systemctl start eardream
-              echo "🔄 Rolled back to previous version"
-            fi
+            echo '❌ Deployment failed - Application is not responding'
             exit 1
           fi
+        "
+        
+        # Clean up
+        rm -f private_key.pem
 
   notify:
     name: Notify Deployment Result
