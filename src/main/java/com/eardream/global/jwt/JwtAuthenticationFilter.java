@@ -121,14 +121,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String path = request.getRequestURI();
-        String method = request.getMethod();
-        
+
         // 인증이 필요없는 경로들
-        return path.startsWith("/api/v1/auth/") ||      // 인증 관련 API
-               path.startsWith("/swagger-") ||          // Swagger 문서
-               path.startsWith("/v3/api-docs") ||       // OpenAPI 문서
+        return path.startsWith("/auth/") ||      // 인증 관련 API
                path.equals("/health") ||                // Health Check
-               path.equals("/") ||                      // Root
-               (path.startsWith("/api/v1/") && "OPTIONS".equals(method)); // CORS Preflight
+               path.equals("/");        // Root
     }
 }

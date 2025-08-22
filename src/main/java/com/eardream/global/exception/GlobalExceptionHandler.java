@@ -20,7 +20,7 @@ import java.util.Map;
  * 전역 예외 처리 핸들러
  * 모든 컨트롤러에서 발생하는 예외를 통합 처리
  */
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = "com.eardream.domain")
 public class GlobalExceptionHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(GlobalExceptionHandler.class);

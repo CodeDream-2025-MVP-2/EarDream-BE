@@ -66,6 +66,7 @@ file:
     path: ./uploads
     max-size: 10MB
 
+
 # Actuator 설정 (모니터링 및 헬스체크)
 management:
   endpoints:
@@ -155,3 +156,4 @@ management:
   endpoint:
     health:
       show-details: never
+
