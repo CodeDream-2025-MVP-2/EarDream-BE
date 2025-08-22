@@ -3,7 +3,6 @@ package com.eardream.domain.auth.service;
 import com.eardream.domain.auth.dto.AuthResponse;
 import com.eardream.domain.user.dto.CreateUserRequest;
 import com.eardream.domain.user.dto.UserDto;
-import com.eardream.domain.user.entity.UserType;
 import com.eardream.domain.user.service.UserService;
 import com.eardream.global.jwt.JwtTokenProvider;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -113,7 +112,7 @@ public class KakaoAuthService {
      */
     public UserDto getCurrentUser(String token) {
         Long userId = jwtTokenProvider.getUserIdFromToken(token);
-        return userService.getUserById(userId);
+        return userService.getMyProfile(userId);
     }
     
     /**
@@ -126,7 +125,7 @@ public class KakaoAuthService {
         }
         
         Long userId = jwtTokenProvider.getUserIdFromToken(refreshToken);
-        UserDto user = userService.getUserById(userId);
+        UserDto user = userService.getMyProfile(userId);
         
         // 새 토큰 발급
         String newAccessToken = jwtTokenProvider.generateAccessToken(
@@ -232,7 +231,6 @@ public class KakaoAuthService {
                     .kakaoId(kakaoUserInfo.kakaoId)
                     .name(kakaoUserInfo.nickname)
                     .profileImageUrl(kakaoUserInfo.profileImage)
-                    .userType(UserType.ACTIVE_USER)
                     .build();
             
             kakaoUserInfo.isNewUser = true;

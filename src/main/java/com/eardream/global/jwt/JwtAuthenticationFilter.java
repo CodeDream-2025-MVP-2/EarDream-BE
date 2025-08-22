@@ -73,17 +73,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private void authenticateUser(HttpServletRequest request, String token) {
         try {
             Long userId = jwtTokenProvider.getUserIdFromToken(token);
-            UserDto userDto = userService.getUserById(userId);
+            UserDto userDto = userService.getMyProfile(userId);
             
-            // Spring Security Authentication 객체 생성
+            // Spring Security Authentication 객체 생성 (가족 리더 역할 제거)
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     userDto, // Principal
                     null,    // Credentials
                     Arrays.asList(
-                        new SimpleGrantedAuthority("ROLE_USER"),
-                        userDto.getIsLeader() != null && userDto.getIsLeader() 
-                            ? new SimpleGrantedAuthority("ROLE_FAMILY_LEADER") 
-                            : new SimpleGrantedAuthority("ROLE_FAMILY_MEMBER")
+                        new SimpleGrantedAuthority("ROLE_USER")
                     )
             );
             

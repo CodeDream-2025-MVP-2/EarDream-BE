@@ -1,6 +1,5 @@
 package com.eardream.global.config;
 
-import com.eardream.domain.user.entity.UserType;
 import org.apache.ibatis.type.TypeHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -47,40 +46,6 @@ public class MybatisConfig {
             }
         };
     }
-
-    /**
-     * UserType Enum을 String으로 자동 변환하는 TypeHandler
-     */
-    @Bean
-    public TypeHandler<UserType> userTypeTypeHandler() {
-        return new org.apache.ibatis.type.TypeHandler<UserType>() {
-            @Override
-            public void setParameter(java.sql.PreparedStatement ps, int i, UserType parameter, 
-                                   org.apache.ibatis.type.JdbcType jdbcType) throws java.sql.SQLException {
-                if (parameter == null) {
-                    ps.setString(i, null);
-                } else {
-                    ps.setString(i, parameter.name());
-                }
-            }
-
-            @Override
-            public UserType getResult(java.sql.ResultSet rs, String columnName) throws java.sql.SQLException {
-                String value = rs.getString(columnName);
-                return value == null ? null : UserType.valueOf(value);
-            }
-
-            @Override
-            public UserType getResult(java.sql.ResultSet rs, int columnIndex) throws java.sql.SQLException {
-                String value = rs.getString(columnIndex);
-                return value == null ? null : UserType.valueOf(value);
-            }
-
-            @Override
-            public UserType getResult(java.sql.CallableStatement cs, int columnIndex) throws java.sql.SQLException {
-                String value = cs.getString(columnIndex);
-                return value == null ? null : UserType.valueOf(value);
-            }
-        };
-    }
+    
+    // UserType TypeHandler 제거 - UserType enum이 삭제됨
 }
