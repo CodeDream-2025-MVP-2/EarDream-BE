@@ -1,6 +1,7 @@
 package com.eardream.domain.user.entity;
 
 import lombok.*;
+import com.eardream.domain.user.entity.UserType;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -24,10 +25,10 @@ public class User {
     private String profileImageUrl;     // 프로필 이미지 로컬 저장 경로
     private LocalDate birthDate;        // 생년월일
     private String address;             // 소식지 배송 주소 (암호화 저장, 받는 분인 경우 필수)
-    private UserType userType;          // 사용자 유형
-    private String familyRole;          // 가족 내 역할 (아들, 딸, 며느리, 사위 등)
-    private Boolean isLeader;           // 가족 그룹 리더 여부
-    private Boolean isReceiver;         // 소식지 수신자 여부
+    private UserType userType;          // 사용자 유형 (예: ACTIVE_USER, PENDING_RECIPIENT)
+    private String familyRole;          // (사용 안함) 가족 역할은 family_members에서 관리
+    private Boolean isLeader;           // 가족 그룹 리더 여부 (DB 컬럼이 없을 수도 있음)
+    private Boolean isReceiver;         // 소식지 수신자 여부 (DB 컬럼이 없을 수도 있음)
     private LocalDateTime createdAt;    // 등록일시
     private LocalDateTime updatedAt;    // 최종 수정일시
     
@@ -42,8 +43,6 @@ public class User {
                 .name(name)
                 .phoneNumber(phoneNumber)
                 .userType(UserType.ACTIVE_USER)
-                .isLeader(false)
-                .isReceiver(false)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
@@ -59,39 +58,13 @@ public class User {
                 .phoneNumber(phoneNumber)
                 .address(address)
                 .userType(UserType.PENDING_RECIPIENT)
-                .isLeader(false)
-                .isReceiver(true)
                 .createdAt(now)
                 .updatedAt(now)
                 .build();
     }
     
     // 비즈니스 메서드
-    public boolean isActiveUser() {
-        return UserType.ACTIVE_USER.equals(this.userType);
-    }
-    
-    public boolean isPendingRecipient() {
-        return UserType.PENDING_RECIPIENT.equals(this.userType);
-    }
-    
-    public boolean isFamilyLeader() {
-        return Boolean.TRUE.equals(this.isLeader);
-    }
-    
-    public boolean isNewsletterReceiver() {
-        return Boolean.TRUE.equals(this.isReceiver);
-    }
-    
-    public void promoteToLeader() {
-        this.isLeader = true;
-        this.updatedAt = LocalDateTime.now();
-    }
-    
-    public void demoteFromLeader() {
-        this.isLeader = false;
-        this.updatedAt = LocalDateTime.now();
-    }
+    // userType/leader/receiver 관련 로직 제거
     
     public void updateProfile(String name, String phoneNumber, String profileImageUrl, LocalDate birthDate) {
         this.name = name;

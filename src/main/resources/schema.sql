@@ -18,6 +18,7 @@ CREATE TABLE users (
 
 CREATE TABLE families (
                           id                NUMBER GENERATED AS IDENTITY PRIMARY KEY,
+                          user_id           NUMBER NOT NULL,
                           family_name       VARCHAR2(100) NOT NULL,
                           family_profile_image_url VARCHAR2(500),
                           monthly_deadline  NUMBER(1) CHECK (monthly_deadline IN (2, 4)),
@@ -25,9 +26,9 @@ CREATE TABLE families (
                           status            VARCHAR2(20) DEFAULT 'ACTIVE',
                           created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                           updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                          USER_ID                  NUMBER
-                              constraint FK_FAMILIES_USERS
-                                  references USERS
+
+                          CONSTRAINT fk_families_user FOREIGN KEY (user_id) REFERENCES users(id)
+
 );
 
 CREATE TABLE family_members (
@@ -46,7 +47,8 @@ CREATE TABLE posts (
                        id                NUMBER GENERATED AS IDENTITY PRIMARY KEY,
                        family_id         NUMBER NOT NULL,
                        user_id           NUMBER NOT NULL,
-                       content           VARCHAR2(100),
+                       title             VARCHAR2(200) NOT NULL,
+                       content           VARCHAR2(500),
                        post_month        VARCHAR2(7) NOT NULL,
                        created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                        updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -58,6 +60,7 @@ CREATE TABLE post_images (
                              id                NUMBER GENERATED AS IDENTITY PRIMARY KEY,
                              post_id           NUMBER NOT NULL,
                              image_url         VARCHAR2(500) NOT NULL,
+                             description       VARCHAR2(200),
                              image_order       NUMBER(1) CHECK (image_order BETWEEN 1 AND 4),
                              created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                              CONSTRAINT fk_post_images_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
@@ -155,6 +158,7 @@ COMMENT ON COLUMN users.updated_at IS '최종 수정일시';
 
 -- families
 COMMENT ON COLUMN families.id IS '가족 그룹 내부 고유 ID (대체키, 자동증가)';
+COMMENT ON COLUMN families.user_id IS '가족 생성자 사용자 ID';
 COMMENT ON COLUMN families.family_name IS '가족 그룹 이름';
 COMMENT ON COLUMN families.family_profile_image_url IS '가족 그룹 프로필 이미지 로컬 저장 경로';
 COMMENT ON COLUMN families.monthly_deadline IS '월간 소식지 마감 주차 (2=둘째주, 4=넷째주)';
@@ -221,6 +225,30 @@ COMMENT ON COLUMN invitations.status IS '초대 상태 (PENDING, ACCEPTED, APPRO
 COMMENT ON COLUMN invitations.expires_at IS '초대 코드 만료일시';
 COMMENT ON COLUMN invitations.created_at IS '초대 코드 생성일시';
 COMMENT ON COLUMN invitations.accepted_at IS '초대 수락일시';
+
+-- =================================================================
+-- 4. 소식 책자 (Books)
+-- =================================================================
+
+CREATE TABLE books (
+  id            NUMBER GENERATED AS IDENTITY PRIMARY KEY,
+  family_id     NUMBER NOT NULL,
+  name          VARCHAR2(200) NOT NULL,
+  pdf_url       VARCHAR2(500),
+  image_url     VARCHAR2(500),
+  created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_books_family FOREIGN KEY (family_id) REFERENCES families(id)
+);
+
+COMMENT ON TABLE books IS '가족별 소식 책자 (PDF/이미지 링크 포함)';
+COMMENT ON COLUMN books.id IS '책자 ID';
+COMMENT ON COLUMN books.family_id IS '가족 ID';
+COMMENT ON COLUMN books.name IS '책자 이름';
+COMMENT ON COLUMN books.pdf_url IS 'PDF 파일 경로(URL)';
+COMMENT ON COLUMN books.image_url IS '대표 이미지 경로(URL)';
+COMMENT ON COLUMN books.created_at IS '생성일시';
+COMMENT ON COLUMN books.updated_at IS '수정일시';
 
 -- payment_histories
 COMMENT ON COLUMN payment_histories.id IS '결제 내역 내부 고유 ID (대체키, 자동증가)';

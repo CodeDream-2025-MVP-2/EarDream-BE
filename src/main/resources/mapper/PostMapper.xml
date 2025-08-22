@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.eardream.domain.posts.mapper.PostMapper">
+
+	<sql id="postColumns">
+		id, family_id, user_id, title, content, post_month, created_at, updated_at
+	</sql>
+
+	<insert id="insertPost" parameterType="Post" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		INSERT INTO posts (
+			family_id, user_id, title, content, post_month, created_at, updated_at
+		) VALUES (
+			#{familyId}, #{userId}, #{title}, #{content}, #{postMonth}, #{createdAt}, #{updatedAt}
+		)
+	</insert>
+
+	<insert id="insertPostImage" parameterType="PostImage" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		INSERT INTO post_images (
+			post_id, image_url, image_order, created_at
+		) VALUES (
+			#{postId}, #{imageUrl}, #{imageOrder}, #{createdAt}
+		)
+	</insert>
+
+	<select id="findPostById" parameterType="long" resultType="Post">
+		SELECT <include refid="postColumns"/>
+		FROM posts
+		WHERE id = #{id}
+	</select>
+
+	<select id="findPostsByFamilyId" parameterType="long" resultType="Post">
+		SELECT <include refid="postColumns"/>
+		FROM posts
+		WHERE family_id = #{familyId}
+		ORDER BY created_at DESC
+	</select>
+
+	<select id="findImagesByPostId" parameterType="long" resultType="com.eardream.domain.posts.entity.PostImage">
+		SELECT id, post_id, image_url, image_order, created_at
+		FROM post_images
+		WHERE post_id = #{postId}
+		ORDER BY image_order ASC
+	</select>
+
+	<update id="updatePost">
+		UPDATE posts SET
+			title = COALESCE(#{title}, title),
+			content = COALESCE(#{content}, content),
+			updated_at = SYSTIMESTAMP
+		WHERE id = #{id}
+	</update>
+
+	<delete id="deletePost" parameterType="long">
+		DELETE FROM posts WHERE id = #{id}
+	</delete>
+
+	<delete id="deleteImagesByPostId" parameterType="long">
+		DELETE FROM post_images WHERE post_id = #{postId}
+	</delete>
+
+</mapper>
+
+
+

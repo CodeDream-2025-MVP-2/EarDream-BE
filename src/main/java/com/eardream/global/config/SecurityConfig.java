@@ -43,10 +43,8 @@ public class SecurityConfig {
                 .requestMatchers("/auth/**").permitAll()        // 인증 관련
                 .requestMatchers("/health", "/", "/actuator/**").permitAll()  // Health Check & Actuator
 
-                // 가족 리더 권한 필요
-                .requestMatchers("/families/{familyId}/members/{memberId}").hasRole("FAMILY_LEADER")
-                .requestMatchers("/subscriptions/**").hasRole("FAMILY_LEADER")
-                
+                //.requestMatchers("/families/{familyId}/members/{memberId}").hasRole("FAMILY_LEADER")
+                //.requestMatchers("/subscriptions/**").hasRole("FAMILY_LEADER")
                 // 기타 모든 요청 허용
                 .anyRequest().permitAll()
             )

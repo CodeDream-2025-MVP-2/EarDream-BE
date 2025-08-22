@@ -4,18 +4,18 @@ import com.eardream.domain.auth.service.KakaoAuthService;
 import com.eardream.domain.user.dto.CreateUserRequest;
 import com.eardream.domain.user.dto.UpdateUserRequest;
 import com.eardream.domain.user.dto.UserDto;
-import com.eardream.domain.user.entity.UserType;
 import com.eardream.domain.user.service.UserService;
 import com.eardream.global.common.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import jakarta.validation.Valid;
-import java.util.List;
-import java.util.Map;
 
 /**
  * User 도메인 REST API Controller
@@ -33,6 +33,12 @@ public class UserController {
      * POST /api/v1/users
      */
     @PostMapping
+    @Operation(summary = "사용자 생성", description = "사용자를 생성합니다.")
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "201", description = "생성 성공",
+                    content = @Content(schema = @Schema(implementation = UserDto.class))),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "유효성 오류")
+    })
     public ResponseEntity<ApiResponse<UserDto>> createUser(@Valid @RequestBody CreateUserRequest request) {
         try {
             UserDto user = userService.createUser(request);
@@ -51,6 +57,7 @@ public class UserController {
      * 현재 사용자 정보 조회
      */
     @GetMapping("/me")
+    @Operation(summary = "현재 사용자 조회", description = "Authorization 헤더의 JWT로 현재 사용자 정보를 조회합니다.")
     public ResponseEntity<ApiResponse<Object>> getCurrentUser(@RequestHeader("Authorization") String authorization) {
         try {
             String token = authorization.replace("Bearer ", "");
@@ -68,6 +75,7 @@ public class UserController {
      * PUT /api/v1/users/{id}
      */
     @PatchMapping("/me")
+    @Operation(summary = "사용자 정보 수정", description = "현재 사용자 정보를 수정합니다.")
     public ResponseEntity<ApiResponse<UserDto>> updateUser(
             @PathVariable Long id,
             @Valid @RequestBody UpdateUserRequest request) {
@@ -88,6 +96,7 @@ public class UserController {
      * DELETE /api/v1/users/{id}
      */
     @PatchMapping("/delete")
+    @Operation(summary = "사용자 삭제", description = "사용자를 삭제합니다.")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long id) {
         try {
             userService.deleteUser(id);
