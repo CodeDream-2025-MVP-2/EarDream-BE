@@ -90,41 +90,6 @@ management:
     os:
       enabled: true
 
----
-# 로컬 개발 환경 설정 (H2 in-memory + Oracle 호환 모드)
-
-#spring:
- # config:
-  #  activate:
-   #   on-profile: local
-  #datasource:
-   # url: jdbc:h2:mem:eardream;MODE=Oracle;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-   # username: sa
-   # password:
-   # driver-class-name: org.h2.Driver
-  #h2:
-   # console:
-    #  enabled: true
- # sql:
-  #  init:
-   #   mode: always */
-
-logging:
-  level:
-    root: INFO
-    com.eardream: DEBUG
-
-# Health 설정 (Oracle Health 체크 비활성화)
-management:
-  health:
-    oracle:
-      enabled: false
-
-# 로컬 JWT 시크릿 (64+ 바이트)
-jwt:
-  secret: localdevsecretlocaldevsecretlocaldevsecretlocaldevsecretlocaldevsecret
-  access-token-expiration: 3600000
-  refresh-token-expiration: 604800000
 
 ---
 # 개발 환경 설정

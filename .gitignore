@@ -37,6 +37,9 @@ logs/
 *.log
 *.log.*
 
+# wallet
+Wallet_senior/
+
 # 업로드된 파일들
 uploads/
 temp/
