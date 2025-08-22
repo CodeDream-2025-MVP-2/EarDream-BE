@@ -46,6 +46,4 @@ public class MybatisConfig {
             }
         };
     }
-    
-    // UserType TypeHandler 제거 - UserType enum이 삭제됨
 }
