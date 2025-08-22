@@ -38,7 +38,7 @@ public class FamilyService {
 		family.setMonthlyDeadline(request.getMonthlyDeadline());
 		family.setUserId(request.getUserId());
 		// 초대코드는 최초 발급 시점에 생성 (없을 때만 생성)
-		family.setInviteCode(null);
+		family.setInviteCode(generateInviteCode());
 		family.setStatus("ACTIVE");
 		family.setCreatedAt(LocalDateTime.now());
 		family.setUpdatedAt(LocalDateTime.now());
