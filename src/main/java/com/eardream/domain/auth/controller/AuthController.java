@@ -26,7 +26,7 @@ public class AuthController {
     private final KakaoAuthService kakaoAuthService;
     
     /**
-<<<<<<< HEAD
+     *
      * 카카오 로그인 시작 - 카카오 인증 서버로 리다이렉트
      */
     @GetMapping("/kakao")
@@ -36,8 +36,7 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(kakaoAuthUrl, "카카오 로그인 URL"));
     }
     /**
-=======
->>>>>>> ec92de7231e6b993e41af2a3ad9b09da718c18a3
+     *
      * 카카오 콜백 처리 - 인증 코드를 받아 JWT 토큰 발급
      */
     @PostMapping("/kakao/token")

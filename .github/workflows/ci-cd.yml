@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 env:
-  JAVA_VERSION: '21'
+  JAVA_VERSION: '17'
   GRADLE_VERSION: 'wrapper'
 
 jobs:
@@ -131,26 +131,26 @@ jobs:
         echo "Copying JAR file..."
         scp -i private_key.pem -o StrictHostKeyChecking=no build/libs/*.jar ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }}:/opt/eardream/eardream.jar
         
-        # Test Java availability and upgrade to Java 21 if needed
+        # Test Java availability and ensure Java 17 is installed
         echo "Testing Java installation..."
         ssh -i private_key.pem -o StrictHostKeyChecking=no ${{ secrets.EC2_USERNAME }}@${{ secrets.EC2_HOST }} "
           echo '=== Current Java version ==='
-          java -version
+          java -version || echo 'Java not found'
           
-          # Check if Java 21 is already installed
-          if ! java -version 2>&1 | grep -q 'openjdk version \"21'; then
-            echo '=== Installing Java 21 ==='
+          # Check if Java 17 is installed and available
+          if ! java -version 2>&1 | grep -q 'openjdk version \"17'; then
+            echo '=== Installing Java 17 ==='
             sudo apt update
-            sudo apt install -y openjdk-21-jdk
+            sudo apt install -y openjdk-17-jdk
             
-            echo '=== Setting up Java 21 as default ==='
-            sudo update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-21-openjdk-amd64/bin/java 1
-            sudo update-alternatives --set java /usr/lib/jvm/java-21-openjdk-amd64/bin/java
+            echo '=== Setting up Java 17 as default ==='
+            sudo update-alternatives --install /usr/bin/java java /usr/lib/jvm/java-17-openjdk-amd64/bin/java 2
+            sudo update-alternatives --set java /usr/lib/jvm/java-17-openjdk-amd64/bin/java
             
-            echo '=== Verifying Java 21 installation ==='
+            echo '=== Verifying Java 17 installation ==='
             java -version
           else
-            echo 'Java 21 is already installed'
+            echo 'Java 17 is already installed and active'
           fi
         "
         
