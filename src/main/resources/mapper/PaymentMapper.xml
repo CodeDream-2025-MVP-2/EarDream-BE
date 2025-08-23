@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.eardream.domain.payment.mapper.PaymentMapper">
+
+    <!-- Payment 결과 매핑 -->
+    <resultMap id="paymentResultMap" type="com.eardream.domain.payment.entity.Payment">
+        <id property="paymentId" column="PAYMENT_ID"/>
+        <result property="orderId" column="ORDER_ID"/>
+        <result property="userId" column="USER_ID"/>
+        <result property="familyId" column="FAMILY_ID"/>
+        <result property="portoneTransactionId" column="PORTONE_TRANSACTION_ID"/>
+        <result property="billingKey" column="BILLING_KEY"/>
+        <result property="amount" column="AMOUNT"/>
+        <result property="currency" column="CURRENCY"/>
+        <result property="paymentMethod" column="PAYMENT_METHOD"/>
+        <result property="status" column="STATUS" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result property="type" column="TYPE" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result property="pgProvider" column="PG_PROVIDER"/>
+        <result property="pgTransactionId" column="PG_TRANSACTION_ID"/>
+        <result property="approvalNumber" column="APPROVAL_NUMBER"/>
+        <result property="failureCode" column="FAILURE_CODE"/>
+        <result property="failureMessage" column="FAILURE_MESSAGE"/>
+        <result property="cardInfo" column="CARD_INFO"/>
+        <result property="buyerName" column="BUYER_NAME"/>
+        <result property="buyerEmail" column="BUYER_EMAIL"/>
+        <result property="buyerPhone" column="BUYER_PHONE"/>
+        <result property="productName" column="PRODUCT_NAME"/>
+        <result property="requestIp" column="REQUEST_IP"/>
+        <result property="requestedAt" column="REQUESTED_AT"/>
+        <result property="approvedAt" column="APPROVED_AT"/>
+        <result property="failedAt" column="FAILED_AT"/>
+        <result property="cancelledAt" column="CANCELLED_AT"/>
+        <result property="createdAt" column="CREATED_AT"/>
+        <result property="updatedAt" column="UPDATED_AT"/>
+    </resultMap>
+
+    <!-- BillingKey 결과 매핑 -->
+    <resultMap id="billingKeyResultMap" type="com.eardream.domain.payment.entity.BillingKey">
+        <id property="billingKeyId" column="BILLING_KEY_ID"/>
+        <result property="userId" column="USER_ID"/>
+        <result property="familyId" column="FAMILY_ID"/>
+        <result property="portoneKey" column="PORTONE_KEY"/>
+        <result property="pgProvider" column="PG_PROVIDER"/>
+        <result property="paymentMethodInfo" column="PAYMENT_METHOD_INFO"/>
+        <result property="cardType" column="CARD_TYPE"/>
+        <result property="cardCompany" column="CARD_COMPANY"/>
+        <result property="status" column="STATUS" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
+        <result property="issuedAt" column="ISSUED_AT"/>
+        <result property="expiredAt" column="EXPIRED_AT"/>
+        <result property="lastUsedAt" column="LAST_USED_AT"/>
+        <result property="createdAt" column="CREATED_AT"/>
+        <result property="updatedAt" column="UPDATED_AT"/>
+    </resultMap>
+
+    <!-- Payment 관련 쿼리 -->
+
+    <!-- 결제 정보 저장 -->
+    <insert id="insertPayment" parameterType="com.eardream.domain.payment.entity.Payment">
+        INSERT INTO PAYMENTS (
+            PAYMENT_ID, ORDER_ID, USER_ID, FAMILY_ID, PORTONE_TRANSACTION_ID,
+            BILLING_KEY, AMOUNT, CURRENCY, PAYMENT_METHOD, STATUS, TYPE,
+            PG_PROVIDER, PG_TRANSACTION_ID, APPROVAL_NUMBER, FAILURE_CODE,
+            FAILURE_MESSAGE, CARD_INFO, BUYER_NAME, BUYER_EMAIL, BUYER_PHONE,
+            PRODUCT_NAME, REQUEST_IP, REQUESTED_AT, APPROVED_AT, FAILED_AT,
+            CANCELLED_AT, CREATED_AT, UPDATED_AT
+        ) VALUES (
+            #{paymentId}, #{orderId}, #{userId}, #{familyId}, #{portoneTransactionId},
+            #{billingKey}, #{amount}, #{currency}, #{paymentMethod}, #{status}, #{type},
+            #{pgProvider}, #{pgTransactionId}, #{approvalNumber}, #{failureCode},
+            #{failureMessage}, #{cardInfo}, #{buyerName}, #{buyerEmail}, #{buyerPhone},
+            #{productName}, #{requestIp}, #{requestedAt}, #{approvedAt}, #{failedAt},
+            #{cancelledAt}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <!-- 결제 정보 업데이트 -->
+    <update id="updatePayment" parameterType="com.eardream.domain.payment.entity.Payment">
+        UPDATE PAYMENTS SET
+            PORTONE_TRANSACTION_ID = #{portoneTransactionId},
+            STATUS = #{status},
+            PG_PROVIDER = #{pgProvider},
+            PG_TRANSACTION_ID = #{pgTransactionId},
+            APPROVAL_NUMBER = #{approvalNumber},
+            FAILURE_CODE = #{failureCode},
+            FAILURE_MESSAGE = #{failureMessage},
+            CARD_INFO = #{cardInfo},
+            APPROVED_AT = #{approvedAt},
+            FAILED_AT = #{failedAt},
+            CANCELLED_AT = #{cancelledAt},
+            UPDATED_AT = #{updatedAt}
+        WHERE PAYMENT_ID = #{paymentId}
+    </update>
+
+    <!-- 결제 ID로 결제 정보 조회 -->
+    <select id="findPaymentById" parameterType="string" resultMap="paymentResultMap">
+        SELECT * FROM PAYMENTS WHERE PAYMENT_ID = #{paymentId}
+    </select>
+
+    <!-- 주문 ID로 결제 정보 조회 -->
+    <select id="findPaymentByOrderId" parameterType="string" resultMap="paymentResultMap">
+        SELECT * FROM PAYMENTS WHERE ORDER_ID = #{orderId}
+    </select>
+
+    <!-- 포트원 거래 ID로 결제 정보 조회 -->
+    <select id="findPaymentByPortoneTransactionId" parameterType="string" resultMap="paymentResultMap">
+        SELECT * FROM PAYMENTS WHERE PORTONE_TRANSACTION_ID = #{portoneTransactionId}
+    </select>
+
+    <!-- 사용자 ID로 결제 내역 조회 (페이징) -->
+    <select id="findPaymentsByUserId" resultMap="paymentResultMap">
+        SELECT * FROM PAYMENTS 
+        WHERE USER_ID = #{userId}
+        ORDER BY CREATED_AT DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <!-- 가족 ID로 결제 내역 조회 (페이징) -->
+    <select id="findPaymentsByFamilyId" resultMap="paymentResultMap">
+        SELECT * FROM PAYMENTS 
+        WHERE FAMILY_ID = #{familyId}
+        ORDER BY CREATED_AT DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <!-- 결제 상태별 결제 내역 조회 -->
+    <select id="findPaymentsByStatus" resultMap="paymentResultMap">
+        SELECT * FROM PAYMENTS 
+        WHERE STATUS = #{status}
+        ORDER BY CREATED_AT DESC
+        OFFSET #{offset} ROWS FETCH NEXT #{size} ROWS ONLY
+    </select>
+
+    <!-- 사용자의 결제 내역 개수 조회 -->
+    <select id="countPaymentsByUserId" parameterType="string" resultType="int">
+        SELECT COUNT(*) FROM PAYMENTS WHERE USER_ID = #{userId}
+    </select>
+
+    <!-- BillingKey 관련 쿼리 -->
+
+    <!-- 빌링키 정보 저장 -->
+    <insert id="insertBillingKey" parameterType="com.eardream.domain.payment.entity.BillingKey">
+        INSERT INTO BILLING_KEYS (
+            BILLING_KEY_ID, USER_ID, FAMILY_ID, PORTONE_KEY, PG_PROVIDER,
+            PAYMENT_METHOD_INFO, CARD_TYPE, CARD_COMPANY, STATUS,
+            ISSUED_AT, EXPIRED_AT, LAST_USED_AT, CREATED_AT, UPDATED_AT
+        ) VALUES (
+            #{billingKeyId}, #{userId}, #{familyId}, #{portoneKey}, #{pgProvider},
+            #{paymentMethodInfo}, #{cardType}, #{cardCompany}, #{status},
+            #{issuedAt}, #{expiredAt}, #{lastUsedAt}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+
+    <!-- 빌링키 정보 업데이트 -->
+    <update id="updateBillingKey" parameterType="com.eardream.domain.payment.entity.BillingKey">
+        UPDATE BILLING_KEYS SET
+            PORTONE_KEY = #{portoneKey},
+            PG_PROVIDER = #{pgProvider},
+            PAYMENT_METHOD_INFO = #{paymentMethodInfo},
+            CARD_TYPE = #{cardType},
+            CARD_COMPANY = #{cardCompany},
+            STATUS = #{status},
+            ISSUED_AT = #{issuedAt},
+            EXPIRED_AT = #{expiredAt},
+            LAST_USED_AT = #{lastUsedAt},
+            UPDATED_AT = #{updatedAt}
+        WHERE BILLING_KEY_ID = #{billingKeyId}
+    </update>
+
+    <!-- 빌링키 ID로 빌링키 정보 조회 -->
+    <select id="findBillingKeyById" parameterType="string" resultMap="billingKeyResultMap">
+        SELECT * FROM BILLING_KEYS WHERE BILLING_KEY_ID = #{billingKeyId}
+    </select>
+
+    <!-- 포트원 빌링키로 빌링키 정보 조회 -->
+    <select id="findBillingKeyByKey" parameterType="string" resultMap="billingKeyResultMap">
+        SELECT * FROM BILLING_KEYS WHERE PORTONE_KEY = #{portoneKey}
+    </select>
+
+    <!-- 사용자 ID로 빌링키 목록 조회 -->
+    <select id="findBillingKeysByUserId" parameterType="string" resultMap="billingKeyResultMap">
+        SELECT * FROM BILLING_KEYS 
+        WHERE USER_ID = #{userId}
+        ORDER BY CREATED_AT DESC
+    </select>
+
+    <!-- 가족 ID로 빌링키 목록 조회 -->
+    <select id="findBillingKeysByFamilyId" parameterType="string" resultMap="billingKeyResultMap">
+        SELECT * FROM BILLING_KEYS 
+        WHERE FAMILY_ID = #{familyId}
+        ORDER BY CREATED_AT DESC
+    </select>
+
+    <!-- 활성 상태 빌링키 목록 조회 -->
+    <select id="findActiveBillingKeysByUserId" parameterType="string" resultMap="billingKeyResultMap">
+        SELECT * FROM BILLING_KEYS 
+        WHERE USER_ID = #{userId} AND STATUS = 'ACTIVE'
+        ORDER BY CREATED_AT DESC
+    </select>
+
+    <!-- 빌링키 삭제 (소프트 삭제) -->
+    <update id="deleteBillingKey" parameterType="string">
+        UPDATE BILLING_KEYS SET 
+            STATUS = 'DELETED',
+            UPDATED_AT = SYSDATE
+        WHERE BILLING_KEY_ID = #{billingKeyId}
+    </update>
+
+</mapper>

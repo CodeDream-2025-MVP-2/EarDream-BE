@@ -22,12 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/api/**")
-                .allowedOrigins(
-                    "http://localhost:3000",           // React 개발 서버
-                    "http://localhost:5173",           // Vite 개발 서버
-                    "https://eardream.com",           // 프로덕션 도메인
-                    "https://www.eardream.com"        // www 도메인
-                )
+                .allowedOrigins("http://localhost:4000"           /* React 개발 서버 */)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true)

@@ -17,8 +17,8 @@ import jakarta.validation.Valid;
  * 인증 관련 컨트롤러 (Kakao OAuth + JWT)
  */
 @RestController
-@RequestMapping("/auth")
-@CrossOrigin(origins = {"http://localhost:3000"})
+@RequestMapping("/api/v1/auth")
+@CrossOrigin(origins = {"http://localhost:4000"})
 @RequiredArgsConstructor
 @Tag(name = "Auth", description = "인증 및 토큰 발급/갱신/로그아웃")
 public class AuthController {
@@ -55,7 +55,7 @@ public class AuthController {
      * JWT 토큰 갱신
      */
     @PostMapping("/kakao/refresh")
-
+    @Operation(summary = "JWT 토큰 갱신", description = "Refresh Token을 사용하여 새로운 JWT 토큰을 발급받습니다.")
     public ResponseEntity<ApiResponse<AuthResponse>> refreshToken(@RequestHeader("Authorization") String authorization) {
         try {
             String token = authorization.replace("Bearer ", "");

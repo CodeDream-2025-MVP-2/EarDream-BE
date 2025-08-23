@@ -68,6 +68,19 @@ file:
     path: ./uploads
     max-size: 10MB
 
+# 포트원 결제 설정
+portone:
+  api-url: ${PORTONE_API_URL:https://api.portone.io}
+  api-key: ${PORTONE_API_KEY}
+  api-secret: ${PORTONE_API_SECRET}
+  store-id: ${PORTONE_STORE_ID}
+  webhook-secret: ${PORTONE_WEBHOOK_SECRET}
+  # 채널키 설정 (실제 포트원 설정에 맞게 수정 필요)
+  channels:
+    card: ${PORTONE_CHANNEL_CARD}
+    kakaopay: ${PORTONE_CHANNEL_KAKAOPAY}
+    bank: ${PORTONE_CHANNEL_BANK}
+
 
 # Actuator 설정 (모니터링 및 헬스체크)
 management:

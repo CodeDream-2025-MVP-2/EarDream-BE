@@ -107,26 +107,6 @@ CREATE TABLE invitations (
                              CONSTRAINT fk_invitations_user FOREIGN KEY (invited_user_id) REFERENCES users(id)
 );
 
--- 결제 내역 테이블 (이니시스 PG)
-CREATE TABLE payment_histories (
-                                  id                    NUMBER GENERATED AS IDENTITY PRIMARY KEY,
-                                  subscription_id       NUMBER NOT NULL,
-                                  amount                NUMBER(10,0) NOT NULL,
-                                  currency              VARCHAR2(3) DEFAULT 'KRW',
-                                  payment_type          VARCHAR2(20) NOT NULL CHECK (payment_type IN ('SUBSCRIPTION', 'REFUND', 'PENALTY')),
-                                  status                VARCHAR2(20) DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'SUCCESS', 'FAILED', 'CANCELLED')),
-                                  inicis_tid            VARCHAR2(100),
-                                  inicis_mid            VARCHAR2(100),
-                                  inicis_authcode       VARCHAR2(100),
-                                  payment_method        VARCHAR2(20),
-                                  card_number           VARCHAR2(20),
-                                  approved_at           TIMESTAMP,
-                                  failed_reason         VARCHAR2(500),
-                                  created_at            TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                  CONSTRAINT fk_payment_histories_subscription FOREIGN KEY (subscription_id) REFERENCES subscriptions(id)
-);
-
-
 -- =================================================================
 -- 2. 테이블 코멘트 (Table Comments)
 -- =================================================================
@@ -139,7 +119,6 @@ COMMENT ON TABLE post_images IS '소식 게시글에 첨부된 이미지를 관�
 COMMENT ON TABLE subscriptions IS '가족 그룹의 정기 구독 및 이니시스 결제 정보를 관리하는 테이블';
 COMMENT ON TABLE publications IS '월간 소식지 발행 및 배송 상태를 관리하는 테이블';
 COMMENT ON TABLE invitations IS '가족 그룹 초대 코드 생성 및 사용 이력을 관리하는 테이블';
-COMMENT ON TABLE payment_histories IS '이니시스 구독 결제 내역 및 상태를 관리하는 테이블';
 
 -- =================================================================
 -- 3. 컬럼 코멘트 (Column Comments)
@@ -194,10 +173,8 @@ COMMENT ON COLUMN post_images.created_at IS '이미지 업로드일시';
 -- subscriptions
 COMMENT ON COLUMN subscriptions.id IS '구독 내부 고유 ID (대체키, 자동증가)';
 COMMENT ON COLUMN subscriptions.family_id IS '구독 가족 그룹 ID';
-COMMENT ON COLUMN subscriptions.plan_name IS '구독 플랜명 (MONTHLY)';
 COMMENT ON COLUMN subscriptions.plan_price IS '구독 월 요금 (원, 정수)';
 COMMENT ON COLUMN subscriptions.status IS '구독 상태 (ACTIVE, CANCELLED, PAUSED)';
-COMMENT ON COLUMN subscriptions.billing_cycle IS '결제 주기 (MONTHLY, YEARLY)';
 COMMENT ON COLUMN subscriptions.next_billing_date IS '다음 결제 예정일';
 COMMENT ON COLUMN subscriptions.inicis_billkey IS '이니시스 빌링키 (정기결제용)';
 COMMENT ON COLUMN subscriptions.started_at IS '구독 시작일시';
@@ -250,18 +227,112 @@ COMMENT ON COLUMN books.image_url IS '대표 이미지 경로(URL)';
 COMMENT ON COLUMN books.created_at IS '생성일시';
 COMMENT ON COLUMN books.updated_at IS '수정일시';
 
--- payment_histories
-COMMENT ON COLUMN payment_histories.id IS '결제 내역 내부 고유 ID (대체키, 자동증가)';
-COMMENT ON COLUMN payment_histories.subscription_id IS '결제 대상 구독 ID';
-COMMENT ON COLUMN payment_histories.amount IS '결제 금액 (원, 정수)';
-COMMENT ON COLUMN payment_histories.currency IS '결제 통화 (KRW, USD 등)';
-COMMENT ON COLUMN payment_histories.payment_type IS '결제 유형 (SUBSCRIPTION: 구독료, REFUND: 환불, PENALTY: 연체료)';
-COMMENT ON COLUMN payment_histories.status IS '결제 상태 (PENDING: 대기, SUCCESS: 성공, FAILED: 실패, CANCELLED: 취소)';
-COMMENT ON COLUMN payment_histories.inicis_tid IS '이니시스 거래 고유번호';
-COMMENT ON COLUMN payment_histories.inicis_mid IS '이니시스 상점 ID';
-COMMENT ON COLUMN payment_histories.inicis_authcode IS '이니시스 승인번호';
-COMMENT ON COLUMN payment_histories.payment_method IS '결제 수단 (CARD, BANK 등)';
-COMMENT ON COLUMN payment_histories.card_number IS '카드번호 마스킹 처리';
-COMMENT ON COLUMN payment_histories.approved_at IS '결제 승인일시';
-COMMENT ON COLUMN payment_histories.failed_reason IS '결제 실패 사유';
-COMMENT ON COLUMN payment_histories.created_at IS '결제 요청일시';
+-- =================================================================
+-- 5. PortOne 결제 관련 테이블 (PortOne Payment Tables)
+-- =================================================================
+
+-- PortOne 결제 정보 테이블
+CREATE TABLE payments (
+    payment_id              VARCHAR2(50) PRIMARY KEY,
+    order_id                VARCHAR2(50) NOT NULL,
+    user_id                 NUMBER NOT NULL,
+    family_id               NUMBER,
+    portone_transaction_id  VARCHAR2(100),
+    billing_key_id          VARCHAR2(50),
+    amount                  NUMBER(10,2) NOT NULL,
+    currency                VARCHAR2(3) DEFAULT 'KRW',
+    payment_method          VARCHAR2(20),
+    status                  VARCHAR2(20) DEFAULT 'PENDING',
+    type                    VARCHAR2(20) NOT NULL,
+    pg_provider             VARCHAR2(20),
+    pg_transaction_id       VARCHAR2(100),
+    approval_number         VARCHAR2(50),
+    failure_code            VARCHAR2(20),
+    failure_message         VARCHAR2(500),
+    card_info               VARCHAR2(100),
+    buyer_name              VARCHAR2(100),
+    buyer_email             VARCHAR2(100),
+    buyer_phone             VARCHAR2(20),
+    product_name            VARCHAR2(200),
+    receipt_url             VARCHAR2(500),
+    request_ip              VARCHAR2(45),
+    requested_at            TIMESTAMP,
+    approved_at             TIMESTAMP,
+    failed_at               TIMESTAMP,
+    cancelled_at            TIMESTAMP,
+    created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_payments_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT fk_payments_family FOREIGN KEY (family_id) REFERENCES families(id)
+);
+
+-- PortOne 빌링키 정보 테이블
+CREATE TABLE billing_keys (
+    billing_key_id          VARCHAR2(50) PRIMARY KEY,
+    user_id                 NUMBER NOT NULL,
+    family_id               NUMBER,
+    customer_uid            VARCHAR2(100) UNIQUE NOT NULL,
+    portone_key             VARCHAR2(100),
+    pg_provider             VARCHAR2(20),
+    card_name               VARCHAR2(50),
+    card_number             VARCHAR2(20),
+    card_type               VARCHAR2(20),
+    payment_method_info     VARCHAR2(500),
+    status                  VARCHAR2(20) DEFAULT 'INACTIVE',
+    issued_at               TIMESTAMP,
+    expired_at              TIMESTAMP,
+    last_used_at            TIMESTAMP,
+    created_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at              TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT fk_billing_keys_user FOREIGN KEY (user_id) REFERENCES users(id),
+    CONSTRAINT fk_billing_keys_family FOREIGN KEY (family_id) REFERENCES families(id)
+);
+
+-- PortOne 테이블 코멘트
+COMMENT ON TABLE payments IS 'PortOne 결제 정보를 관리하는 테이블';
+COMMENT ON TABLE billing_keys IS 'PortOne 빌링키 정보를 관리하는 테이블 (정기결제용)';
+
+-- payments 컬럼 코멘트
+COMMENT ON COLUMN payments.payment_id IS '결제 고유 ID (UUID)';
+COMMENT ON COLUMN payments.order_id IS '주문 ID (merchant_uid)';
+COMMENT ON COLUMN payments.user_id IS '결제 사용자 ID';
+COMMENT ON COLUMN payments.family_id IS '가족 그룹 ID';
+COMMENT ON COLUMN payments.portone_transaction_id IS 'PortOne 거래 ID (imp_uid)';
+COMMENT ON COLUMN payments.billing_key_id IS '빌링키 ID (정기결제인 경우)';
+COMMENT ON COLUMN payments.amount IS '결제 금액';
+COMMENT ON COLUMN payments.currency IS '통화 코드';
+COMMENT ON COLUMN payments.payment_method IS '결제 수단 (CARD, KAKAOPAY 등)';
+COMMENT ON COLUMN payments.status IS '결제 상태 (PENDING, APPROVED, FAILED, CANCELLED)';
+COMMENT ON COLUMN payments.type IS '결제 타입 (ONETIME, SUBSCRIPTION)';
+COMMENT ON COLUMN payments.pg_provider IS 'PG사 코드';
+COMMENT ON COLUMN payments.pg_transaction_id IS 'PG사 거래 ID';
+COMMENT ON COLUMN payments.approval_number IS '승인 번호';
+COMMENT ON COLUMN payments.failure_code IS '실패 코드';
+COMMENT ON COLUMN payments.failure_message IS '실패 메시지';
+COMMENT ON COLUMN payments.card_info IS '카드 정보 (마스킹)';
+COMMENT ON COLUMN payments.buyer_name IS '구매자 이름';
+COMMENT ON COLUMN payments.buyer_email IS '구매자 이메일';
+COMMENT ON COLUMN payments.buyer_phone IS '구매자 전화번호';
+COMMENT ON COLUMN payments.product_name IS '상품명';
+COMMENT ON COLUMN payments.receipt_url IS '영수증 URL';
+COMMENT ON COLUMN payments.request_ip IS '요청 IP';
+COMMENT ON COLUMN payments.requested_at IS '요청 일시';
+COMMENT ON COLUMN payments.approved_at IS '승인 일시';
+COMMENT ON COLUMN payments.failed_at IS '실패 일시';
+COMMENT ON COLUMN payments.cancelled_at IS '취소 일시';
+
+-- billing_keys 컬럼 코멘트
+COMMENT ON COLUMN billing_keys.billing_key_id IS '빌링키 고유 ID (UUID)';
+COMMENT ON COLUMN billing_keys.user_id IS '빌링키 소유자 ID';
+COMMENT ON COLUMN billing_keys.family_id IS '가족 그룹 ID';
+COMMENT ON COLUMN billing_keys.customer_uid IS '고객 고유 ID (PortOne에서 사용)';
+COMMENT ON COLUMN billing_keys.portone_key IS 'PortOne 빌링키';
+COMMENT ON COLUMN billing_keys.pg_provider IS 'PG사 코드';
+COMMENT ON COLUMN billing_keys.card_name IS '카드사명';
+COMMENT ON COLUMN billing_keys.card_number IS '마스킹된 카드번호';
+COMMENT ON COLUMN billing_keys.card_type IS '카드 타입 (CREDIT, DEBIT)';
+COMMENT ON COLUMN billing_keys.payment_method_info IS '결제 수단 정보 (JSON)';
+COMMENT ON COLUMN billing_keys.status IS '빌링키 상태 (ACTIVE, INACTIVE, EXPIRED, DELETED)';
+COMMENT ON COLUMN billing_keys.issued_at IS '발급 일시';
+COMMENT ON COLUMN billing_keys.expired_at IS '만료 일시';
+COMMENT ON COLUMN billing_keys.last_used_at IS '마지막 사용 일시';
