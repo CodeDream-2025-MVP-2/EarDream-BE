@@ -8,16 +8,14 @@
 
     <!-- 공통 컬럼 정의 -->
     <sql id="userColumns">
-        id, kakao_id, name, phone_number, profile_image_url, birth_date, address,
-        user_type, created_at, updated_at
+        id, kakao_id, name, phone_number, profile_image_url, birth_date, address, created_at, updated_at
     </sql>
 
     <!-- 사용자 생성 -->
     <insert id="insertUser" parameterType="User" 
             useGeneratedKeys="true" keyProperty="id">
         INSERT INTO users (
-            kakao_id, name, phone_number, profile_image_url, birth_date, address,
-            user_type, created_at, updated_at
+            kakao_id, name, phone_number, profile_image_url, birth_date, address, created_at, updated_at
         ) VALUES (
             #{kakaoId},
             #{name},
@@ -25,7 +23,6 @@
             #{profileImageUrl},
             #{birthDate},
             #{address},
-            #{userType},
             #{createdAt},
             #{updatedAt}
         )

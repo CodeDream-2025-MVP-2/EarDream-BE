@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -167,7 +168,7 @@ public class KakaoAuthService {
         params.add("code", code);
         
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-        
+
         try {
             ResponseEntity<String> response = restTemplate.postForEntity(KAKAO_TOKEN_URL, request, String.class);
             
@@ -202,13 +203,12 @@ public class KakaoAuthService {
                 JsonNode properties = jsonNode.get("properties");
                 JsonNode kakaoAccount = jsonNode.get("kakao_account");
                 
-                String nickname = properties.get("nickname").asText();
-                String profileImage = properties.has("profile_image") 
+                String profileImage = properties.has("profile_image")
                     ? properties.get("profile_image").asText() : null;
                 String email = kakaoAccount.has("email") 
                     ? kakaoAccount.get("email").asText() : null;
                 
-                return new KakaoUserInfo(kakaoId, nickname, email, profileImage);
+                return KakaoUserInfo.builder().kakaoId(kakaoId).email(email).profileImage(profileImage).build();
             } else {
                 throw new RuntimeException("카카오 사용자 정보 조회 실패: " + response.getStatusCode());
             }
@@ -252,19 +252,12 @@ public class KakaoAuthService {
      */
     @Data
     @AllArgsConstructor
+    @Builder
     private static class KakaoUserInfo {
         String kakaoId;
         String nickname;
         String email;
         String profileImage;
         boolean isNewUser = false;
-        
-        public KakaoUserInfo(String kakaoId, String nickname, String email, String profileImage) {
-            this.kakaoId = kakaoId;
-            this.nickname = nickname;
-            this.email = email;
-            this.profileImage = profileImage;
-            this.isNewUser = false;
-        }
     }
 }

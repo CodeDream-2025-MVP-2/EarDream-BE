@@ -116,6 +116,27 @@ deploy_app() {
         exit 1
     fi
     
+    # .env 파일 업로드 (.env.production 우선, 없으면 .env 사용)
+    if [ -f ".env.production" ]; then
+        log_info ".env.production 파일 업로드 중..."
+        if scp -i "$PEM_KEY" ".env.production" "$EC2_USER@$EC2_HOST:/home/ubuntu/eardream/.env"; then
+            log_success ".env.production 파일 업로드 완료"
+        else
+            log_error ".env.production 파일 업로드 실패"
+            exit 1
+        fi
+    elif [ -f ".env" ]; then
+        log_info ".env 파일 업로드 중..."
+        if scp -i "$PEM_KEY" ".env" "$EC2_USER@$EC2_HOST:/home/ubuntu/eardream/"; then
+            log_success ".env 파일 업로드 완료"
+        else
+            log_error ".env 파일 업로드 실패"
+            exit 1
+        fi
+    else
+        log_warning ".env 파일이 없습니다. 환경변수 설정을 확인하세요."
+    fi
+    
     # 시작 스크립트 생성
     log_info "시작 스크립트 생성 중..."
     ssh -i "$PEM_KEY" "$EC2_USER@$EC2_HOST" "cat > /home/ubuntu/eardream/start.sh << 'EOF'
@@ -129,7 +150,7 @@ if [ -f .env ]; then
     set +a
 fi
 
-export JAVA_OPTS=\"-Xms512m -Xmx1024m -Dserver.port=$APP_PORT\"
+export JAVA_OPTS=\"-Xms256m -Xmx768m -XX:MaxMetaspaceSize=128m -XX:+UseG1GC -XX:+UseStringDeduplication -Dserver.port=$APP_PORT\"
 nohup java \$JAVA_OPTS -jar $APP_NAME.jar > app.log 2>&1 &
 echo \$! > app.pid
 echo \"EarDream 애플리케이션이 시작되었습니다. PID: \$(cat app.pid)\"
@@ -156,6 +177,10 @@ EOF"
     ssh -i "$PEM_KEY" "$EC2_USER@$EC2_HOST" "chmod +x /home/ubuntu/eardream/*.sh"
     
     log_success "배포 완료"
+    
+    # 애플리케이션 자동 시작
+    log_info "배포된 애플리케이션을 시작합니다..."
+    restart_app
 }
 
 # 애플리케이션 재시작
@@ -173,15 +198,16 @@ restart_app() {
         PORT_PID=\$(lsof -ti:$APP_PORT 2>/dev/null)
         if [ ! -z \"\$PORT_PID\" ]; then
             echo \"8080 포트 사용 프로세스 발견: \$PORT_PID\"
-            sudo kill -9 \$PORT_PID 2>/dev/null || true
-            echo \"8080 포트 프로세스 강제 종료 완료\"
+            # 먼저 정상 종료 시도, 실패하면 강제 종료
+            kill \$PORT_PID 2>/dev/null || kill -9 \$PORT_PID 2>/dev/null || true
+            echo \"8080 포트 프로세스 종료 완료\"
         fi
         
-        # 모든 eardream 관련 Java 프로세스 강제 종료
-        JAVA_PIDS=\$(ps aux | grep 'java.*eardream' | grep -v grep | awk '{print \$2}')
+        # eardream-backend.jar 프로세스만 강제 종료
+        JAVA_PIDS=\$(ps aux | grep 'java.*eardream-backend.jar' | grep -v grep | awk '{print \$2}')
         if [ ! -z \"\$JAVA_PIDS\" ]; then
             echo \"EarDream Java 프로세스 발견: \$JAVA_PIDS\"
-            echo \$JAVA_PIDS | xargs sudo kill -9 2>/dev/null || true
+            echo \$JAVA_PIDS | xargs kill -9 2>/dev/null || true
             echo \"EarDream Java 프로세스 강제 종료 완료\"
         fi
     "
@@ -245,6 +271,7 @@ main() {
             ;;
         "deploy")
             check_pem_key
+            build_app  # 로컬에서 빌드
             test_connection
             deploy_app
             ;;
@@ -271,15 +298,15 @@ main() {
                 # 8080 포트 프로세스 강제 종료
                 PORT_PID=\$(lsof -ti:$APP_PORT 2>/dev/null)
                 if [ ! -z \"\$PORT_PID\" ]; then
-                    echo \"8080 포트 프로세스 강제 종료: \$PORT_PID\"
-                    sudo kill -9 \$PORT_PID 2>/dev/null || true
+                    echo \"8080 포트 프로세스 종료: \$PORT_PID\"
+                    kill \$PORT_PID 2>/dev/null || kill -9 \$PORT_PID 2>/dev/null || true
                 fi
                 
-                # 모든 Java 프로세스 강제 종료
-                JAVA_PIDS=\$(ps aux | grep java | grep -v grep | awk '{print \$2}')
+                # EarDream 관련 Java 프로세스만 강제 종료 (전체 Java가 아닌 eardream JAR만)
+                JAVA_PIDS=\$(ps aux | grep 'java.*eardream-backend.jar' | grep -v grep | awk '{print \$2}')
                 if [ ! -z \"\$JAVA_PIDS\" ]; then
-                    echo \"Java 프로세스 강제 종료: \$JAVA_PIDS\"
-                    echo \$JAVA_PIDS | xargs sudo kill -9 2>/dev/null || true
+                    echo \"EarDream Java 프로세스 강제 종료: \$JAVA_PIDS\"
+                    echo \$JAVA_PIDS | xargs kill -9 2>/dev/null || true
                 fi
                 
                 # PID 파일 정리
@@ -288,27 +315,49 @@ main() {
                 echo \"✅ 모든 프로세스 정리 완료\"
             "
             ;;
-        "full")
+        "env")
             check_pem_key
             test_connection
-            build_app
-            deploy_app
-            restart_app
+            log_info ".env 파일만 업로드 중..."
+            # 서버에 애플리케이션 디렉토리 생성
+            ssh -i "$PEM_KEY" "$EC2_USER@$EC2_HOST" "mkdir -p /home/ubuntu/eardream"
+            
+            # .env 파일 업로드 (.env.production 우선, 없으면 .env 사용)
+            if [ -f ".env.production" ]; then
+                log_info ".env.production 파일 업로드 중..."
+                if scp -i "$PEM_KEY" ".env.production" "$EC2_USER@$EC2_HOST:/home/ubuntu/eardream/.env"; then
+                    log_success ".env.production 파일 업로드 완료"
+                else
+                    log_error ".env.production 파일 업로드 실패"
+                    exit 1
+                fi
+            elif [ -f ".env" ]; then
+                log_info ".env 파일 업로드 중..."
+                if scp -i "$PEM_KEY" ".env" "$EC2_USER@$EC2_HOST:/home/ubuntu/eardream/"; then
+                    log_success ".env 파일 업로드 완료"
+                else
+                    log_error ".env 파일 업로드 실패"
+                    exit 1
+                fi
+            else
+                log_error ".env 파일이 없습니다!"
+                exit 1
+            fi
             ;;
         *)
-            echo "사용법: $0 [build|deploy|restart|logs|status|kill|full]"
+            echo "사용법: $0 [build|deploy|restart|logs|status|kill|env]"
             echo ""
             echo "명령어:"
-            echo "  build   - Spring Boot 애플리케이션 빌드"
-            echo "  deploy  - AWS EC2에 애플리케이션 배포"
-            echo "  restart - 애플리케이션 재시작 (8080 포트 강제 종료 포함)"
-            echo "  logs    - 애플리케이션 로그 확인"
-            echo "  status  - 애플리케이션 상태 확인"
-            echo "  kill    - 모든 Java 프로세스 강제 종료"
-            echo "  full    - 빌드 + 배포 + 재시작 (전체 배포)"
+            echo "  build   - 로컬에서 Spring Boot JAR 빌드만"
+            echo "  deploy  - 로컬 빌드 + JAR 업로드 + 배포 + 재시작"
+            echo "  restart - 서버에서 애플리케이션만 재시작"
+            echo "  logs    - 서버 애플리케이션 로그 확인"
+            echo "  status  - 서버 애플리케이션 상태 확인"
+            echo "  kill    - 서버의 모든 EarDream 프로세스 강제 종료"
+            echo "  env     - .env 파일만 서버에 업로드"
             echo ""
             echo "예시:"
-            echo "  $0 full      # 전체 배포 프로세스"
+            echo "  $0 deploy    # 전체 배포 프로세스"
             echo "  $0 kill      # 서버 다운 시 프로세스 정리"
             echo "  $0 restart   # 재시작 (강제 종료 포함)"
             exit 1
