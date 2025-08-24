@@ -68,9 +68,24 @@ test_connection() {
 build_app() {
     log_info "Spring Boot 애플리케이션 빌드 중..."
     
-    # Gradle 빌드
+    # Gradle 빌드 (Spring Boot 실행 가능한 JAR 생성)
     if ./gradlew clean bootJar; then
-        log_success "빌드 완료: build/libs/${APP_NAME}.jar"
+        # 빌드된 JAR 파일 확인
+        if [ -f "build/libs/${APP_NAME}.jar" ]; then
+            JAR_SIZE=$(ls -lh "build/libs/${APP_NAME}.jar" | awk '{print $5}')
+            log_success "빌드 완료: build/libs/${APP_NAME}.jar (크기: ${JAR_SIZE})"
+            
+            # 정적 리소스 포함 여부 확인
+            if unzip -l "build/libs/${APP_NAME}.jar" | grep -q "static/index.html"; then
+                log_info "✅ 정적 리소스(index.html) 포함 확인됨"
+            else
+                log_warning "⚠️ 정적 리소스가 JAR에 포함되지 않았을 수 있습니다"
+            fi
+        else
+            log_error "빌드된 JAR 파일을 찾을 수 없습니다: build/libs/${APP_NAME}.jar"
+            ls -la build/libs/ || echo "build/libs 디렉토리가 없습니다"
+            exit 1
+        fi
     else
         log_error "빌드 실패"
         exit 1
@@ -106,6 +121,14 @@ deploy_app() {
     ssh -i "$PEM_KEY" "$EC2_USER@$EC2_HOST" "cat > /home/ubuntu/eardream/start.sh << 'EOF'
 #!/bin/bash
 cd /home/ubuntu/eardream
+
+# 환경변수 로드
+if [ -f .env ]; then
+    set -a  # automatically export all variables
+    source .env
+    set +a
+fi
+
 export JAVA_OPTS=\"-Xms512m -Xmx1024m -Dserver.port=$APP_PORT\"
 nohup java \$JAVA_OPTS -jar $APP_NAME.jar > app.log 2>&1 &
 echo \$! > app.pid
@@ -139,9 +162,41 @@ EOF"
 restart_app() {
     log_info "애플리케이션 재시작 중..."
     
-    # 기존 프로세스 중지
+    # 기존 프로세스 중지 (PID 파일 기반)
     ssh -i "$PEM_KEY" "$EC2_USER@$EC2_HOST" "/home/ubuntu/eardream/stop.sh"
-    sleep 3
+    sleep 2
+    
+    # 8080 포트 사용 프로세스 강제 종료
+    log_info "8080 포트 사용 프로세스 강제 종료 중..."
+    ssh -i "$PEM_KEY" "$EC2_USER@$EC2_HOST" "
+        # 8080 포트 사용 프로세스 찾기
+        PORT_PID=\$(lsof -ti:$APP_PORT 2>/dev/null)
+        if [ ! -z \"\$PORT_PID\" ]; then
+            echo \"8080 포트 사용 프로세스 발견: \$PORT_PID\"
+            sudo kill -9 \$PORT_PID 2>/dev/null || true
+            echo \"8080 포트 프로세스 강제 종료 완료\"
+        fi
+        
+        # 모든 eardream 관련 Java 프로세스 강제 종료
+        JAVA_PIDS=\$(ps aux | grep 'java.*eardream' | grep -v grep | awk '{print \$2}')
+        if [ ! -z \"\$JAVA_PIDS\" ]; then
+            echo \"EarDream Java 프로세스 발견: \$JAVA_PIDS\"
+            echo \$JAVA_PIDS | xargs sudo kill -9 2>/dev/null || true
+            echo \"EarDream Java 프로세스 강제 종료 완료\"
+        fi
+    "
+    sleep 2
+    
+    # 프로세스 정리 확인
+    log_info "프로세스 정리 상태 확인 중..."
+    ssh -i "$PEM_KEY" "$EC2_USER@$EC2_HOST" "
+        if lsof -ti:$APP_PORT >/dev/null 2>&1; then
+            echo \"⚠️  여전히 8080 포트를 사용하는 프로세스가 있습니다\"
+            lsof -i:$APP_PORT
+        else
+            echo \"✅ 8080 포트가 해제되었습니다\"
+        fi
+    "
     
     # 새 프로세스 시작
     ssh -i "$PEM_KEY" "$EC2_USER@$EC2_HOST" "/home/ubuntu/eardream/start.sh"
@@ -208,6 +263,31 @@ main() {
             test_connection
             check_status
             ;;
+        "kill")
+            check_pem_key
+            test_connection
+            log_info "모든 EarDream 프로세스 강제 종료 중..."
+            ssh -i "$PEM_KEY" "$EC2_USER@$EC2_HOST" "
+                # 8080 포트 프로세스 강제 종료
+                PORT_PID=\$(lsof -ti:$APP_PORT 2>/dev/null)
+                if [ ! -z \"\$PORT_PID\" ]; then
+                    echo \"8080 포트 프로세스 강제 종료: \$PORT_PID\"
+                    sudo kill -9 \$PORT_PID 2>/dev/null || true
+                fi
+                
+                # 모든 Java 프로세스 강제 종료
+                JAVA_PIDS=\$(ps aux | grep java | grep -v grep | awk '{print \$2}')
+                if [ ! -z \"\$JAVA_PIDS\" ]; then
+                    echo \"Java 프로세스 강제 종료: \$JAVA_PIDS\"
+                    echo \$JAVA_PIDS | xargs sudo kill -9 2>/dev/null || true
+                fi
+                
+                # PID 파일 정리
+                rm -f /home/ubuntu/eardream/app.pid
+                
+                echo \"✅ 모든 프로세스 정리 완료\"
+            "
+            ;;
         "full")
             check_pem_key
             test_connection
@@ -216,20 +296,21 @@ main() {
             restart_app
             ;;
         *)
-            echo "사용법: $0 [build|deploy|restart|logs|status|full]"
+            echo "사용법: $0 [build|deploy|restart|logs|status|kill|full]"
             echo ""
             echo "명령어:"
             echo "  build   - Spring Boot 애플리케이션 빌드"
             echo "  deploy  - AWS EC2에 애플리케이션 배포"
-            echo "  restart - 애플리케이션 재시작"
+            echo "  restart - 애플리케이션 재시작 (8080 포트 강제 종료 포함)"
             echo "  logs    - 애플리케이션 로그 확인"
             echo "  status  - 애플리케이션 상태 확인"
+            echo "  kill    - 모든 Java 프로세스 강제 종료"
             echo "  full    - 빌드 + 배포 + 재시작 (전체 배포)"
             echo ""
             echo "예시:"
             echo "  $0 full      # 전체 배포 프로세스"
-            echo "  $0 build     # 빌드만 실행"
-            echo "  $0 restart   # 재시작만 실행"
+            echo "  $0 kill      # 서버 다운 시 프로세스 정리"
+            echo "  $0 restart   # 재시작 (강제 종료 포함)"
             exit 1
             ;;
     esac

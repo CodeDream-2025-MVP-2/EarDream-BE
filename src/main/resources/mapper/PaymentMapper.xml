@@ -10,7 +10,8 @@
         <result property="userId" column="USER_ID"/>
         <result property="familyId" column="FAMILY_ID"/>
         <result property="portoneTransactionId" column="PORTONE_TRANSACTION_ID"/>
-        <result property="billingKey" column="BILLING_KEY"/>
+        <result property="billingKeyId" column="BILLING_KEY_ID"/>
+        <result property="receiptUrl" column="RECEIPT_URL"/>
         <result property="amount" column="AMOUNT"/>
         <result property="currency" column="CURRENCY"/>
         <result property="paymentMethod" column="PAYMENT_METHOD"/>
@@ -40,11 +41,14 @@
         <id property="billingKeyId" column="BILLING_KEY_ID"/>
         <result property="userId" column="USER_ID"/>
         <result property="familyId" column="FAMILY_ID"/>
+        <result property="customerUid" column="CUSTOMER_UID"/>
         <result property="portoneKey" column="PORTONE_KEY"/>
         <result property="pgProvider" column="PG_PROVIDER"/>
-        <result property="paymentMethodInfo" column="PAYMENT_METHOD_INFO"/>
+        <result property="cardName" column="CARD_NAME"/>
+        <result property="cardNumber" column="CARD_NUMBER"/>
         <result property="cardType" column="CARD_TYPE"/>
         <result property="cardCompany" column="CARD_COMPANY"/>
+        <result property="paymentMethodInfo" column="PAYMENT_METHOD_INFO"/>
         <result property="status" column="STATUS" typeHandler="org.apache.ibatis.type.EnumTypeHandler"/>
         <result property="issuedAt" column="ISSUED_AT"/>
         <result property="expiredAt" column="EXPIRED_AT"/>
@@ -59,14 +63,14 @@
     <insert id="insertPayment" parameterType="com.eardream.domain.payment.entity.Payment">
         INSERT INTO PAYMENTS (
             PAYMENT_ID, ORDER_ID, USER_ID, FAMILY_ID, PORTONE_TRANSACTION_ID,
-            BILLING_KEY, AMOUNT, CURRENCY, PAYMENT_METHOD, STATUS, TYPE,
+            BILLING_KEY_ID, RECEIPT_URL, AMOUNT, CURRENCY, PAYMENT_METHOD, STATUS, TYPE,
             PG_PROVIDER, PG_TRANSACTION_ID, APPROVAL_NUMBER, FAILURE_CODE,
             FAILURE_MESSAGE, CARD_INFO, BUYER_NAME, BUYER_EMAIL, BUYER_PHONE,
             PRODUCT_NAME, REQUEST_IP, REQUESTED_AT, APPROVED_AT, FAILED_AT,
             CANCELLED_AT, CREATED_AT, UPDATED_AT
         ) VALUES (
             #{paymentId}, #{orderId}, #{userId}, #{familyId}, #{portoneTransactionId},
-            #{billingKey}, #{amount}, #{currency}, #{paymentMethod}, #{status}, #{type},
+            #{billingKeyId}, #{receiptUrl}, #{amount}, #{currency}, #{paymentMethod}, #{status}, #{type},
             #{pgProvider}, #{pgTransactionId}, #{approvalNumber}, #{failureCode},
             #{failureMessage}, #{cardInfo}, #{buyerName}, #{buyerEmail}, #{buyerPhone},
             #{productName}, #{requestIp}, #{requestedAt}, #{approvedAt}, #{failedAt},
@@ -141,12 +145,12 @@
     <!-- 빌링키 정보 저장 -->
     <insert id="insertBillingKey" parameterType="com.eardream.domain.payment.entity.BillingKey">
         INSERT INTO BILLING_KEYS (
-            BILLING_KEY_ID, USER_ID, FAMILY_ID, PORTONE_KEY, PG_PROVIDER,
-            PAYMENT_METHOD_INFO, CARD_TYPE, CARD_COMPANY, STATUS,
+            BILLING_KEY_ID, USER_ID, FAMILY_ID, CUSTOMER_UID, PORTONE_KEY, PG_PROVIDER,
+            CARD_NAME, CARD_NUMBER, CARD_TYPE, CARD_COMPANY, PAYMENT_METHOD_INFO, STATUS,
             ISSUED_AT, EXPIRED_AT, LAST_USED_AT, CREATED_AT, UPDATED_AT
         ) VALUES (
-            #{billingKeyId}, #{userId}, #{familyId}, #{portoneKey}, #{pgProvider},
-            #{paymentMethodInfo}, #{cardType}, #{cardCompany}, #{status},
+            #{billingKeyId}, #{userId}, #{familyId}, #{customerUid}, #{portoneKey}, #{pgProvider},
+            #{cardName}, #{cardNumber}, #{cardType}, #{cardCompany}, #{paymentMethodInfo}, #{status},
             #{issuedAt}, #{expiredAt}, #{lastUsedAt}, #{createdAt}, #{updatedAt}
         )
     </insert>
@@ -154,11 +158,14 @@
     <!-- 빌링키 정보 업데이트 -->
     <update id="updateBillingKey" parameterType="com.eardream.domain.payment.entity.BillingKey">
         UPDATE BILLING_KEYS SET
+            CUSTOMER_UID = #{customerUid},
             PORTONE_KEY = #{portoneKey},
             PG_PROVIDER = #{pgProvider},
-            PAYMENT_METHOD_INFO = #{paymentMethodInfo},
+            CARD_NAME = #{cardName},
+            CARD_NUMBER = #{cardNumber},
             CARD_TYPE = #{cardType},
             CARD_COMPANY = #{cardCompany},
+            PAYMENT_METHOD_INFO = #{paymentMethodInfo},
             STATUS = #{status},
             ISSUED_AT = #{issuedAt},
             EXPIRED_AT = #{expiredAt},
@@ -205,5 +212,22 @@
             UPDATED_AT = SYSDATE
         WHERE BILLING_KEY_ID = #{billingKeyId}
     </update>
+
+    <!-- 고객 UID로 빌링키 존재 여부 확인 -->
+    <select id="existsBillingKeyByCustomerUid" parameterType="string" resultType="boolean">
+        SELECT CASE WHEN COUNT(*) > 0 THEN 1 ELSE 0 END
+        FROM BILLING_KEYS 
+        WHERE CUSTOMER_UID = #{customerUid} 
+        AND STATUS = 'ACTIVE'
+    </select>
+
+    <!-- 가족 ID로 활성 빌링키 조회 -->
+    <select id="findActiveBillingKeyByFamilyId" parameterType="string" resultMap="billingKeyResultMap">
+        SELECT * FROM BILLING_KEYS 
+        WHERE FAMILY_ID = #{familyId} 
+        AND STATUS = 'ACTIVE'
+        ORDER BY CREATED_AT DESC
+        FETCH FIRST 1 ROWS ONLY
+    </select>
 
 </mapper>

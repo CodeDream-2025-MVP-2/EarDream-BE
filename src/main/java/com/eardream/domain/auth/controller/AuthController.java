@@ -18,7 +18,7 @@ import jakarta.validation.Valid;
  */
 @RestController
 @RequestMapping("/api/v1/auth")
-@CrossOrigin(origins = {"http://localhost:4000"})
+@CrossOrigin(origins = {"http://localhost:4000", "http://localhost:5173"})
 @RequiredArgsConstructor
 @Tag(name = "Auth", description = "인증 및 토큰 발급/갱신/로그아웃")
 public class AuthController {
@@ -37,10 +37,10 @@ public class AuthController {
     }
     /**
      *
-     * 카카오 콜백 처리 - 인증 코드를 받아 JWT 토큰 발급
+     * 카카오 콜백 처리 - 인증 코드를 받아 JWT 토큰 발급 (POST)
      */
     @PostMapping("/kakao/token")
-    @Operation(summary = "카카오 콜백 처리", description = "카카오 인증코드를 받아 EarDream JWT를 발급합니다.")
+    @Operation(summary = "카카오 콜백 처리 (POST)", description = "카카오 인증코드를 받아 EarDream JWT를 발급합니다.")
     public ResponseEntity<ApiResponse<AuthResponse>> kakaoCallback(@Valid @RequestBody KakaoAuthRequest request) {
         try {
             AuthResponse authResponse = kakaoAuthService.authenticateWithKakao(request.getCode());

@@ -58,7 +58,7 @@ public class PaymentService {
                     .currency("KRW")
                     .paymentMethod(verification.getPayMethod())
                     .status(Payment.PaymentStatus.APPROVED)
-                    .type(Payment.PaymentType.ONETIME)
+                    .type(Payment.PaymentType.BILLING_KEY)
                     .portoneTransactionId(request.getImpUid())
                     .buyerName(verification.getBuyerName())
                     .buyerEmail(verification.getBuyerEmail())

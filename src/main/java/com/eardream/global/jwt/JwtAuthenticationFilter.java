@@ -120,7 +120,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
 
         // 인증이 필요없는 경로들
-        return path.startsWith("/auth/") ||      // 인증 관련 API
+        return path.startsWith("/api/v1/auth/") ||      // 인증 관련 API
                path.equals("/health") ||                // Health Check
                path.equals("/");        // Root
     }
