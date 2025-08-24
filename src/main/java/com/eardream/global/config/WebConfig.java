@@ -21,12 +21,10 @@ public class WebConfig implements WebMvcConfigurer {
      */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/api/**")
-                .allowedOrigins("http://localhost:4000"           /* React 개발 서버 */)
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true)
-                .maxAge(3600);
+        registry.addMapping("/**")
+                .allowedOriginPatterns("*") // “*“같은 와일드카드를 사용
+                .allowedMethods("GET", "POST") // 허용할 HTTP method
+                .allowCredentials(true); // 쿠키 인증 요청 허용
     }
     
     /**
