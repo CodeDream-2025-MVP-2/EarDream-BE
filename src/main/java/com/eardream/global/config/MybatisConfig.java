@@ -1,6 +1,9 @@
 package com.eardream.global.config;
 
+import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.type.TypeHandler;
+import org.apache.ibatis.type.TypeHandlerRegistry;
+import org.mybatis.spring.boot.autoconfigure.ConfigurationCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -10,6 +13,18 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class MybatisConfig {
+
+    /**
+     * MyBatis Configuration Customizer - TypeHandler 등록
+     */
+    @Bean
+    public ConfigurationCustomizer mybatisConfigurationCustomizer() {
+        return configuration -> {
+            TypeHandlerRegistry registry = configuration.getTypeHandlerRegistry();
+            // String 타입에 대해 OracleNullTypeHandler 등록
+            registry.register(String.class, new OracleNullTypeHandler());
+        };
+    }
 
     /**
      * Oracle DB의 CHAR(1) 'Y'/'N'을 Boolean으로 자동 변환하는 TypeHandler

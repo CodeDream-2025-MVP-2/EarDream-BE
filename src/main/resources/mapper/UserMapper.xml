@@ -13,7 +13,7 @@
 
     <!-- 사용자 생성 -->
     <insert id="insertUser" parameterType="User" 
-            useGeneratedKeys="true" keyProperty="id">
+            useGeneratedKeys="true" keyProperty="id" keyColumn="id">
         INSERT INTO users (
             kakao_id, name, phone_number, profile_image_url, birth_date, address, created_at, updated_at
         ) VALUES (

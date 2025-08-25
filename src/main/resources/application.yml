@@ -44,11 +44,15 @@ mybatis:
 # Logging 설정 (MVP용 간단 설정)
 logging:
   level:
+    root: DEBUG
     com.eardream: DEBUG
-    org.springframework.web: INFO
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
     org.mybatis: DEBUG
+    org.springframework.boot.web.servlet.filter: DEBUG
+    org.springframework.web.cors: DEBUG
   pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50} - %msg%n"
 
 # JWT 인증 설정
 jwt:
@@ -149,11 +153,15 @@ spring:
     hikari:
       maximum-pool-size: 20
       connection-timeout: 30000
-
 logging:
   level:
-    root: WARN
-    com.eardream: INFO
+    root: DEBUG
+    com.eardream: DEBUG
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.mybatis: DEBUG
+    org.springframework.boot.web.servlet.filter: DEBUG
+    org.springframework.web.cors: DEBUG
   file:
     name: /var/log/eardream/application.log
   logback:

@@ -40,7 +40,8 @@ public class SecurityConfig {
             // 요청 권한 설정
             .authorizeHttpRequests(auth -> auth
                 // 인증 없이 접근 가능한 경로
-                .requestMatchers("/auth/**").permitAll()        // 인증 관련
+                .requestMatchers("/api/v1/auth/**").permitAll()  // 인증 관련
+                .requestMatchers("/auth/**").permitAll()        // 인증 관련 (호환성)
                 .requestMatchers("/health", "/", "/actuator/**").permitAll()  // Health Check & Actuator
 
                 //.requestMatchers("/families/{familyId}/members/{memberId}").hasRole("FAMILY_LEADER")
@@ -84,7 +85,9 @@ public class SecurityConfig {
         
         // 허용할 Origin (개발/운영 환경)
         configuration.setAllowedOriginPatterns(Arrays.asList(
-            "http://localhost:3000",     // 개발 환경
+            "http://localhost:3000",     // React 개발 환경
+            "http://localhost:4000",     // 프론트엔드 서버
+            "http://13.124.99.68:4000",  // AWS 프론트엔드
             "https://eardream.com",      // 프로덕션
             "https://*.eardream.com"     // 서브도메인
         ));
@@ -97,6 +100,9 @@ public class SecurityConfig {
         // 허용할 헤더
         configuration.setAllowedHeaders(Arrays.asList("*"));
         
+        // 노출할 헤더 (클라이언트에서 읽을 수 있는 헤더)
+        configuration.setExposedHeaders(Arrays.asList("*"));
+        
         // 인증 정보 포함 허용
         configuration.setAllowCredentials(true);
         
@@ -104,7 +110,8 @@ public class SecurityConfig {
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/api/**", configuration);
+        // 모든 경로에 CORS 적용
+        source.registerCorsConfiguration("/**", configuration);
         
         return source;
     }

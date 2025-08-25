@@ -22,6 +22,10 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -75,7 +79,6 @@ public class KakaoAuthService {
     /**
      * 카카오 인증 코드로 JWT 토큰 발급
      */
-    @Transactional
     public AuthResponse authenticateWithKakao(String code) {
         try {
             // 1. 카카오 액세스 토큰 획득
@@ -205,10 +208,34 @@ public class KakaoAuthService {
                 
                 String profileImage = properties.has("profile_image")
                     ? properties.get("profile_image").asText() : null;
-                String email = kakaoAccount.has("email") 
-                    ? kakaoAccount.get("email").asText() : null;
+                String name = kakaoAccount.has("name")
+                    ? kakaoAccount.get("name").asText() : null;
+                String phoneNumber = kakaoAccount.has("phone_number")
+                    ? kakaoAccount.get("phone_number").asText() : null;
+                String birthYear = kakaoAccount.has("birthyear")
+                    ? kakaoAccount.get("birthyear").asText() : null;
+                String birthDay = kakaoAccount.has("birthday")
+                    ? kakaoAccount.get("birthday").asText() : null;
                 
-                return KakaoUserInfo.builder().kakaoId(kakaoId).email(email).profileImage(profileImage).build();
+                // birth date 안전하게 파싱
+                LocalDate birthDate = null;
+                if (birthYear != null && birthDay != null) {
+                    try {
+                        birthDate = new SimpleDateFormat("yyyyMMdd").parse(birthYear + birthDay)
+                                .toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+                    } catch (Exception e) {
+                        // 파싱 실패 시 null로 처리
+                        birthDate = null;
+                    }
+                }
+                
+                return KakaoUserInfo.builder()
+                        .kakaoId(kakaoId)
+                        .name(name)
+                        .phoneNumber(phoneNumber)
+                        .birthDate(birthDate)
+                        .profileImage(profileImage)
+                        .build();
             } else {
                 throw new RuntimeException("카카오 사용자 정보 조회 실패: " + response.getStatusCode());
             }
@@ -220,7 +247,6 @@ public class KakaoAuthService {
     /**
      * 사용자 조회 또는 생성
      */
-    @Transactional
     public UserDto findOrCreateUser(KakaoUserInfo kakaoUserInfo) {
         try {
             // 기존 사용자 조회
@@ -229,7 +255,9 @@ public class KakaoAuthService {
             // 신규 사용자 생성
             CreateUserRequest createRequest = CreateUserRequest.builder()
                     .kakaoId(kakaoUserInfo.kakaoId)
-                    .name(kakaoUserInfo.nickname)
+                    .name(kakaoUserInfo.name)
+                    .birthDate(kakaoUserInfo.birthDate)
+                    .phoneNumber(kakaoUserInfo.phoneNumber)
                     .profileImageUrl(kakaoUserInfo.profileImage)
                     .build();
             
@@ -255,8 +283,11 @@ public class KakaoAuthService {
     @Builder
     private static class KakaoUserInfo {
         String kakaoId;
-        String nickname;
-        String email;
+        String name;
+        String phoneNumber;
+        String birthYear;
+        String birthDay;
+        LocalDate birthDate;
         String profileImage;
         boolean isNewUser = false;
     }
